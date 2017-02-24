@@ -1,0 +1,52 @@
+---
+meta:
+  vault: (( concat "secret/" params.vault ))
+
+update:
+  canaries: 1
+  max_in_flight: 4
+  canary_watch_time: 1000-60000
+  update_watch_time: 1000-60000
+  serial: false
+
+instance_groups:
+  - name: jumpbox
+    instances: 1
+    persistent_disk_type: (( grab params.jumpbox_disk_pool ))
+    vm_type:              (( grab params.jumpbox_vm_type   ))
+    stemcell: ubuntu
+    networks:
+      - name: (( grab params.jumpbox_network ))
+        static_ips: (( static_ips 0 ))
+    jobs:
+      - {release: jumpbox, name: jumpbox}
+      - {release: toolbelt, name: toolbelt-quick}
+      - {release: shield, name: shield-agent}
+      - {release: toolbelt, name: toolbelt}
+
+properties:
+  jumpbox:
+    hostname: (( concat name "-jumpbox" ))
+    users: (( param "Set up some users to log into this jumpbox" ))
+  shield:
+    agent:
+      autoprovision: (( param "What is the URL to this jumpbox's shield installation?" ))
+
+releases:
+- name: shield
+  version: 6.6.0
+  sha1: 1ad7500dfa5408198906ece8febe9699bbbedd46
+  url: https://bosh.io/d/github.com/starkandwayne/shield-boshrelease?v=6.6.0
+- name: jumpbox
+  version: 4.2.3
+  sha1: 8504c653b930355d6f5061493f209e79c02e7924
+  url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.2.3
+- name: toolbelt
+  version: 3.2.10
+  sha1: 0ff09164d76223823cd30bd5592fcc6c58a2c28f
+  url: https://bosh.io/d/github.com/cloudfoundry-community/toolbelt-boshrelease?v=3.2.10
+
+stemcells:
+- os: ubuntu-trusty
+  version: latest
+  alias: ubuntu
