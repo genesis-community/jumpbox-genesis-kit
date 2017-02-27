@@ -41,9 +41,9 @@ releases:
 - name: shield
   version: latest
 - name: jumpbox
-  version: 4.2.6
-  sha1: d151fb5c39c9c0396b01543e0ddd63f949a51271
-  url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.2.6
+  version: 4.2.7
+  sha1: d96caf2e1cd5e2d984ac31a7459ae82265acc43d
+  url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.2.7
 - name: toolbelt
   version: latest
 
