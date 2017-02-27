@@ -1,4 +1,9 @@
 ---
+params:
+  jumpbox_vm_type: jumpbox
+  jumpbox_disk_pool: jumpbox
+  jumpbox_network: jumpbox
+
 meta:
   vault: (( concat "secret/" params.vault ))
 
@@ -30,21 +35,17 @@ properties:
     users: (( param "Set up some users to log into this jumpbox" ))
   shield:
     agent:
-      autoprovision: (( param "What is the URL to this jumpbox's shield installation?" ))
+      daemon_public_key: (( grab params.shield_public_key ))
 
 releases:
 - name: shield
-  version: 6.6.0
-  sha1: 1ad7500dfa5408198906ece8febe9699bbbedd46
-  url: https://bosh.io/d/github.com/starkandwayne/shield-boshrelease?v=6.6.0
+  version: latest
 - name: jumpbox
-  version: 4.2.3
-  sha1: 8504c653b930355d6f5061493f209e79c02e7924
-  url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.2.3
+  version: 4.2.6
+  sha1: d151fb5c39c9c0396b01543e0ddd63f949a51271
+  url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.2.6
 - name: toolbelt
-  version: 3.2.10
-  sha1: 0ff09164d76223823cd30bd5592fcc6c58a2c28f
-  url: https://bosh.io/d/github.com/cloudfoundry-community/toolbelt-boshrelease?v=3.2.10
+  version: latest
 
 stemcells:
 - os: ubuntu-trusty
