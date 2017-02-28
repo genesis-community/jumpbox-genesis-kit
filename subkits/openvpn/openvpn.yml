@@ -1,0 +1,34 @@
+---
+params:
+  vpn_client_network: 172.31.255.0
+  vpn_client_netmask: 255.255.255.0
+  vpn_client_routes: (( param "What networks should be advetised to clients over the VPN? (e.g. 10.1.0.0 255.255.0.0" ))
+
+instance_groups:
+- name: jumpbox
+  jobs:
+  - name: openvpn
+    release: openvpn
+
+properties:
+  openvpn:
+    port: 443
+    server_crt: (( vault meta.vault "/openvpn/cert:cert" ))
+    server_key: (( vault meta.vault "/openvpn/cert:key" ))
+    ca_crt:     (( vault meta.vault "/openvpn/ca:ca-pem" ))
+    crl_crt:    (( vault meta.vault "/openvpn/crl:crl-pem" ))
+    dh_pem:     (( vault meta.vault "/openvpn/dh_params:dhparam-pem" ))
+    server:     (( concat params.vpn_client_network " " params.vpn_client_netmask ))
+
+    cipher: AES-256-CBC
+
+    iptables:
+    - (( concat "POSTROUTING -t nat -s " params.vpn_client_network "/" params.vpn_client_netmask " -j MASQUERADE" ))
+
+    push_routes: (( grab params.vpn_client_routes ))
+
+releases:
+- name: openvpn
+  version: 3.1.2
+  sha1: f03f4ea48796299700645778d46358879bc74033
+  url: https://bosh.io/d/github.com/dpb587/openvpn-bosh-release?v=3.1.2

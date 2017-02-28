@@ -1,4 +1,10 @@
 ---
 params: {}
 
-vault: {}
+vault:
+  # FIXME: make these subkit-specific secrets when that's supported
+  openvpn/cert: cert server.openvpn
+  # FIXME: try to use an isolate CA for this, to prevent certs for other components being able to authenticate for the VPN
+  openvpn/ca: ca-pem
+  openvpn/crl: crl-pem
+  openvpn/dh_params: dhparams 2048

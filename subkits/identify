@@ -6,4 +6,8 @@ case $($GENESIS lookup params.shield $1 enabled) in
 (yes|y|enabled|true|1|on) echo shield;;
 esac
 
+case $($GENESIS lookup params.openvpn $1 disabled) in
+(yes|y|enabled|true|1|on) echo openvpn;;
+esac
+
 exit $rc
