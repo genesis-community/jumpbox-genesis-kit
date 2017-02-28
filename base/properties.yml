@@ -26,20 +26,14 @@ instance_groups:
     jobs:
       - {release: jumpbox, name: jumpbox}
       - {release: toolbelt, name: toolbelt-quick}
-      - {release: shield, name: shield-agent}
       - {release: toolbelt, name: toolbelt}
 
 properties:
   jumpbox:
     hostname: (( concat name "-jumpbox" ))
     users: (( param "Set up some users to log into this jumpbox" ))
-  shield:
-    agent:
-      daemon_public_key: (( grab params.shield_public_key ))
 
 releases:
-- name: shield
-  version: latest
 - name: jumpbox
   version: 4.2.7
   sha1: a17548ebfd9148f706eb6a405435e4d394d2e7a2

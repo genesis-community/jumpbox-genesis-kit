@@ -1,0 +1,9 @@
+#!/bin/bash
+set -e
+
+rc=0
+case $($GENESIS lookup params.shield $1 enabled) in
+(yes|y|enabled|true|1|on) echo shield;;
+esac
+
+exit $rc
