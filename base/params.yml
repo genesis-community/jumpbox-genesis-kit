@@ -1,0 +1,7 @@
+params:
+  hostname: jumpbox.local
+  banner: ~
+  hosts: []
+  env_vars: {}
+  bashrc: ~
+  users: (( param "Set up some users to log into this jumpbox" ))

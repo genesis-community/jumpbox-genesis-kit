@@ -31,7 +31,7 @@ instance_groups:
 properties:
   jumpbox:
     hostname: (( concat name "-jumpbox" ))
-    users: (( param "Set up some users to log into this jumpbox" ))
+    users: (( grab params.users ))
 
 releases:
 - name: jumpbox

@@ -1,0 +1,7 @@
+---
+params:
+  vpn_client_network: 172.31.255.0
+  vpn_client_netmask: 255.255.255.0
+
+  # Kit param hook should add this
+  vpn_client_routes: (( param "What networks should be advertised to clients over the VPN? (e.g. 10.1.0.0 255.255.0.0" ))
