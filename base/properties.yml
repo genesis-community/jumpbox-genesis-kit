@@ -1,9 +1,4 @@
 ---
-params:
-  jumpbox_vm_type: jumpbox
-  jumpbox_disk_pool: jumpbox
-  jumpbox_network: jumpbox
-
 meta:
   vault: (( concat "secret/" params.vault ))
 
@@ -17,6 +12,7 @@ update:
 instance_groups:
   - name: jumpbox
     instances: 1
+    azs: (( grab params.availability_zones ))
     persistent_disk_type: (( grab params.jumpbox_disk_pool ))
     vm_type:              (( grab params.jumpbox_vm_type   ))
     stemcell: ubuntu
@@ -30,7 +26,7 @@ instance_groups:
 
 properties:
   jumpbox:
-    hostname: (( concat name "-jumpbox" ))
+    hostname: (( grab params.hostname ))
     users: (( grab params.users ))
 
 releases:

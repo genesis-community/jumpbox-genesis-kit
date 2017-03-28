@@ -1,7 +1,16 @@
 params:
-  hostname: jumpbox.local
+  hostname: (( concat params.env "-jumpbox" ))
   banner: ~
   hosts: []
   env_vars: {}
   bashrc: ~
   users: (( param "Set up some users to log into this jumpbox" ))
+
+  jumpbox_vm_type: jumpbox
+  jumpbox_disk_pool: jumpbox
+  jumpbox_network: jumpbox
+
+  availability_zones:
+    - z1
+    - z2
+    - z3
