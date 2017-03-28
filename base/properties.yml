@@ -31,9 +31,9 @@ properties:
 
 releases:
 - name: jumpbox
-  version: 4.2.11
-  sha1: fafc8622e5569dbc0b5775056cade930f23c907f
-  url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.2.11
+  version: 4.2.12
+  sha1: 325dfb254fcbb12d30db2797f52e411b3687cb97
+  url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.2.12
 - name: toolbelt
   version: latest
 
