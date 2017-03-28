@@ -8,10 +8,10 @@ instance_groups:
 properties:
   openvpn:
     port: 443
-    server_crt: (( vault meta.vault "/openvpn/cert:cert" ))
-    server_key: (( vault meta.vault "/openvpn/cert:key" ))
-    ca_crt:     (( vault meta.vault "/openvpn/ca:ca-pem" ))
-    crl_crt:    (( vault meta.vault "/openvpn/crl:crl-pem" ))
+    server_crt: (( vault meta.vault "/openvpn/certs/server:certificate" ))
+    server_key: (( vault meta.vault "/openvpn/certs/server:key" ))
+    ca_crt:     (( vault meta.vault "/openvpn/certs/ca:certificate" ))
+    crl_crt:    (( vault meta.vault "/openvpn/certs/ca:crl" ))
     dh_pem:     (( vault meta.vault "/openvpn/dh_params:dhparam-pem" ))
     server:     (( concat params.vpn_client_network " " params.vpn_client_netmask ))
 
