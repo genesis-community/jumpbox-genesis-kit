@@ -21,8 +21,6 @@ instance_groups:
         static_ips: (( static_ips 0 ))
     jobs:
       - {release: jumpbox, name: jumpbox}
-      - {release: toolbelt, name: toolbelt-quick}
-      - {release: toolbelt, name: toolbelt}
 
 properties:
   jumpbox:
