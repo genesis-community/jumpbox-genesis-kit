@@ -32,8 +32,6 @@ releases:
   version: 4.2.12
   sha1: 325dfb254fcbb12d30db2797f52e411b3687cb97
   url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.2.12
-- name: toolbelt
-  version: latest
 
 stemcells:
 - os: ubuntu-trusty
