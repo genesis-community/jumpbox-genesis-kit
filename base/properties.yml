@@ -29,9 +29,9 @@ properties:
 
 releases:
 - name: jumpbox
-  version: 4.2.15
-  sha1: 9a534fc7e489b15be14a17707cd7cd8140cd4f77
-  url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.2.15
+  version: 4.2.16
+  sha1: 33b91d4e014cf82fa04e54fdf4477d4211e23b1a
+  url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.2.16
 
 stemcells:
 - os: ubuntu-trusty
