@@ -26,6 +26,9 @@ properties:
   jumpbox:
     hostname: (( grab params.hostname ))
     users: (( grab params.users ))
+    env:
+      TMPDIR: /var/vcap/data/root_tmp
+      .: (( inject params.env_vars ))
 
 releases:
 - name: jumpbox
