@@ -21,9 +21,12 @@ properties:
     - (( concat "POSTROUTING -t nat -s " params.vpn_client_network "/" params.vpn_client_netmask " -j MASQUERADE" ))
 
     push_routes: (( grab params.vpn_client_routes ))
+    push_dns: (( grab params.vpn_dns_servers ))
+    push_dns_search_domains: (( grab params.vpn_dns_search_domains ))
+    tls_version_min: (( grab params.vpn_min_tls_version ))
 
 releases:
 - name: openvpn
-  version: 3.1.2
-  sha1: f03f4ea48796299700645778d46358879bc74033
-  url: https://bosh.io/d/github.com/dpb587/openvpn-bosh-release?v=3.1.2
+  version: 3.2.0
+  sha1: 39b4ae933230f82b0613829e1979abf7375136ee
+  url: https://bosh.io/d/github.com/dpb587/openvpn-bosh-release?v=3.2.0

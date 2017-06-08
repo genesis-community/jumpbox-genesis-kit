@@ -84,6 +84,17 @@ params:
       label: route
       min_count: 1
 
+    - param: vpn_dns_servers
+      default: []
+      ask: "What DNS servers should be advertised to clients connecting to the VPN?"
+      type: list
+      description: "List of DNS servers to advertise over the VPN"
+    - param: vpn_dns_search_domains
+      default: []
+      ask: "What DNS search domains should be advertised to clients connecting to the VPN?"
+      type: list
+      description: "List of DNS search domains to advertise over the VPN"
+
     - param: vpn_client_network
       default: 172.31.255.0
       description: VPN Client Network
@@ -95,6 +106,10 @@ params:
       description: VPN Client Network Mask
       ask: "Enter network mask:"
       validate: /((^|\.)([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){4}$/
+
+    - param: vpn_min_tls_version
+      description: The minimum version of TLS that the OpenVPN server will accept (1.0, 1.1, 1.2)
+
 
   shield:
     - param: shield_public_key_vault_path
