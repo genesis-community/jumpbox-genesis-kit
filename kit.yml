@@ -85,12 +85,10 @@ params:
       min_count: 1
 
     - param: vpn_dns_servers
-      default: []
       ask: "What DNS servers should be advertised to clients connecting to the VPN?"
       type: list
       description: "List of DNS servers to advertise over the VPN"
     - param: vpn_dns_search_domains
-      default: []
       ask: "What DNS search domains should be advertised to clients connecting to the VPN?"
       type: list
       description: "List of DNS search domains to advertise over the VPN"
