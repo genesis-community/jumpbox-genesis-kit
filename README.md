@@ -1,4 +1,4 @@
-Jumpbox 0Genesis Kit
+Jumpbox Genesis Kit
 ======================
 
 This is a Genesis Kit for the [jumpbox-boshrelease][1]. It creates a VM
@@ -126,6 +126,20 @@ Params
   This is used to authenticate the SHIELD daemon to the agent, when running tasks.
 
   For example: `secret/us/proto/shield/agent:public`
+
+Cloud Config
+------------
+By default, this kit uses the following VM types/networks/disk pools from your
+Cloud Config. Feel free to override them in your environment, if you would
+rather they use entities already existing in your Cloud Foundry:
+
+```
+params:
+  jumbpox_network:   jumpbox
+  jumpbox_disk_pool: jumpbox # should be at least 50GB
+  jumpbox_vm_type:   jumpbox # VMs should have at least 1 CPU, and 2GB of memory
+```
+
 
 [1]: https://github.com/cloudfoundry-community/jumpbox-boshrelease
 [2]: https://github.com/djb587/openvpn-boshrelease
