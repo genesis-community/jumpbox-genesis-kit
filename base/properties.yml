@@ -33,7 +33,7 @@ properties:
 releases:
 - name: jumpbox
   version: 4.2.24
-  sha1: 9214fc9b7ce1a2f979adba082762c525bc598e84
+  sha1: d8fd16b54b06d460a10a170a3db492a21e8cbaca
   url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.2.24
 
 stemcells:
