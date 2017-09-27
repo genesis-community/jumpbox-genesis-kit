@@ -7,9 +7,10 @@ instance_groups:
 
 properties:
   daemon_public_key: (( vault params.shield_public_key_vault_path ))
+  shield:
+    agent:
+      daemon_public_key: (( vault params.shield_public_key_vault_path ))
 
 releases:
 - name: shield
-  version: 7.0.2
-  sha1: aab8a1a088cef8db1055d44dd47d0ed8f6651e6e
-  url: https://bosh.io/d/github.com/starkandwayne/shield-boshrelease?v=7.0.2
+  version: latest
