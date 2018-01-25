@@ -1,0 +1,8 @@
+---
+kit:
+  name: dev
+
+instance_groups:
+  - name: jumpbox
+    networks:
+      - static_ips: (( prune ))

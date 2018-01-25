@@ -1,0 +1,22 @@
+---
+kit:
+  subkits: []
+
+params:
+  env:   ci-baseline
+  vault: genesis-ci/jumpbox/ci/baseline
+  bosh:  genesis-ci
+
+  availability_zones:
+    - (( replace ))
+    - z1
+
+  jumpbox_vm_type: small
+  jumpbox_disk_pool: default
+  jumpbox_network: genesis-ci
+
+  users:
+    - name: test-user
+      shell: /bin/bash
+      ssh_keys:
+        - (( vault "secret/genesis-ci/jumpbox/TEMP/test-user-ssh-key:public" ))
