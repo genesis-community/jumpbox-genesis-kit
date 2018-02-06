@@ -30,12 +30,6 @@ properties:
       TMPDIR: /var/vcap/data/root_tmp
       .: (( inject params.env_vars ))
 
-releases:
-- name: jumpbox
-  version: 4.3.9
-  sha1: 02cbc091fd82290ffecff1a08bb4f2c0a11f2005
-  url: https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/download/v4.3.9/jumpbox-4.3.9.tgz
-
 stemcells:
 - os: ubuntu-trusty
   version: latest

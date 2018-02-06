@@ -1,0 +1,6 @@
+---
+releases:
+- name:    jumpbox
+  version: 4.4.0
+  url:     https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/download/v4.4.0/jumpbox-4.4.0.tgz
+  sha1:    1e405936546a11859ebc784ef6c5c594398fca79
