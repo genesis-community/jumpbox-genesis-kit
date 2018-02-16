@@ -27,6 +27,17 @@ genesis init --kit jumpbox -d my-jumpbox-configs
 
 Once created, refer to the deployment repo's README for information on creating
 
+Validation
+----------
+
+This kit bundles an `inventory` errand, on the main `jumpbox`
+instance, so that you can validate the installation and also get
+information about the versions of things installed.  To run it:
+
+```
+bosh run-errand inventory
+```
+
 Subkits
 -------
 

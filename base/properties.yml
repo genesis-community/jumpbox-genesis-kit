@@ -20,7 +20,8 @@ instance_groups:
       - name: (( grab params.jumpbox_network ))
         static_ips: (( static_ips 0 ))
     jobs:
-      - {release: jumpbox, name: jumpbox}
+      - { release: jumpbox, name: jumpbox   }
+      - { release: jumpbox, name: inventory }
 
 properties:
   jumpbox:

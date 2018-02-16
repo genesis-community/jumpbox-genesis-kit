@@ -38,4 +38,9 @@ header "Deploying BASELINE environment to verify functionality..."
 genesis secrets --vault da-vault add ci-baseline
 genesis deploy -n ci-baseline
 $BOSH -d ci-baseline-jumpbox instances --ps
+
+header "Validating BASELINE environment (via acceptance-tests errand)"
+$BOSH -d ci-baseline-jumpbox run-errand acceptance-tests
+
+header "Cleaning up BASELINE environment..."
 cleanup ci-baseline-jumpbox
