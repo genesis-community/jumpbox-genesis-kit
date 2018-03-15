@@ -112,6 +112,18 @@ Params
   Environment template repos are optional. If present, they will be cloned into `~/env` upon login.
   If the repo contains a `./install` script, it will be executed.
 
+The following (de facto) standard parameters are also supported:
+
+- **params.stemcell_os** - What operating system to deploy on, for
+  stemcell selection.  Defaults to `ubuntu-trusty`
+
+- **params.stemcell_version** - What stemcell version to deploy.
+  Defaults to `latest`, but can be set to something like
+  `3468.latest` to pin your deployments to a stemcell major
+  version.  If you do change this, you probably want to set
+  `skip_upkeep: true` in your CI/CD pipeline definition.
+
+
 #### OpenVPN Params
 
 - **params.vpn_client_routes** - A list of networks that should be routed across the VPN connection.

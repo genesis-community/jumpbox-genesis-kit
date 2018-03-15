@@ -15,7 +15,7 @@ instance_groups:
     azs: (( grab params.availability_zones ))
     persistent_disk_type: (( grab params.jumpbox_disk_pool ))
     vm_type:              (( grab params.jumpbox_vm_type   ))
-    stemcell: ubuntu
+    stemcell: default
     networks:
       - name: (( grab params.jumpbox_network ))
         static_ips: (( static_ips 0 ))
@@ -34,6 +34,6 @@ properties:
       .: (( inject params.env_vars ))
 
 stemcells:
-- os: ubuntu-trusty
-  version: latest
-  alias: ubuntu
+  - alias: default
+    os:      (( grab params.stemcell_os      || "ubuntu-trusty" ))
+    version: (( grab params.stemcell_version || "latest" ))
