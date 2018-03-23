@@ -5,3 +5,6 @@
 - This kit now supports`stemcell_os` and `stemcell_version`
   parameters, which is a de facto standard for handling version
   pinning and stemcell selection.
+
+- Bumped `toolbelt` release version to 3.4.2
+
