@@ -1,0 +1,11 @@
+#!/bin/bash
+set -eu
+ip=$(bosh vms --json | jq -r '.Tables[0].Rows[0].ips')
+
+    echo "----------------------------------------------------"
+    echo "$GENESIS_ENVIRONMENT Jumpbox"
+    echo
+    echo "jumpbox ip: $ip"
+    echo
+    echo "----------------------------------------------------"
+    echo

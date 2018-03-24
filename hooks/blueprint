@@ -1,0 +1,31 @@
+#!/bin/bash
+set -eu
+
+declare -a merge
+
+validate_features openvpn \
+                  proxy azure shield
+
+merge=( manifests/jumpbox.yml )
+
+for want in ${GENESIS_REQUESTED_FEATURES[@]}; do
+  case $want in
+  openvpn)
+    merge+=( manifests/addons/$want.yml )
+    ;;
+
+  shield)
+    echo >&2 "The Jumpbox Genesis Kit no longer supplies a 'shield' feature flag."
+    echo >&2 "If you wish to back up this jumpbox, please switch to using BOSH"
+    echo >&2 "runtime configurations to add the shield-agent to the deployment."
+    exit 1
+    ;;
+
+  proxy|azure)
+    echo >&2 "You no longer need to explicitly specify the 'proxy' feature."
+    echo >&2 "If you remove it, everything will still work as expected."
+    ;;
+  esac
+done
+
+echo "${merge[@]}"

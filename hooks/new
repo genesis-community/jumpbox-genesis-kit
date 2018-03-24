@@ -1,0 +1,79 @@
+#!/bin/bash
+set -eu
+
+prompt_for openvpn boolean \
+  'Would you like to use OpenVPN to better control user access?'
+
+if [[ $openvpn == 'true' ]]; then
+  prompt_for vpn_client_routes multi-line \
+    'What routes should OpenVPN push to connecting clients?  (192.0.2.0 255.255.255.0 format)' \
+    --min 1
+
+  prompt_for vpn_dns_servers multi-line \
+    'What DNS servers should OpenVPN advertise to connecting clients?' \
+    --min 1
+fi
+
+trap "rm -f $GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml" INT QUIT TERM EXIT
+(
+echo "kit:"
+echo "  name:    $GENESIS_KIT_NAME"
+echo "  version: $GENESIS_KIT_VERSION"
+if [[ $openvpn == 'true' ]]; then
+  echo "  features:"
+  echo "    - openvpn"
+else
+  echo "  features: []"
+fi
+echo
+
+echo "params:"
+if [[ $openvpn == 'true' ]]; then
+  echo "  vpn_client_routes:"
+  for route in ${vpn_client_routes[@]}; do
+    echo "    - $route"
+  done
+  echo "  vpn_dns_servers:"
+  for dns in ${vpn_dns_servers[@]}; do
+    echo "    - $dns"
+  done
+  echo
+fi
+) >$GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml
+
+
+## USERS
+prompt_for addusers boolean \
+  'Would you like to add users to this jumpbox instance?'
+
+if [[ $addusers == 'true' ]]; then
+  echo "  users:" >>$GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml
+fi
+while [[ $addusers == 'true' ]]; do
+  prompt_for user line \
+    'Account login name' \
+    -v '/^[a-z_][a-z0-9_-]{0,30}$/'
+
+  prompt_for shell line \
+    "What shell will $user use? (/bin/bash, /bin/zsh, etc.)" \
+    --default /bin/bash
+
+  prompt_for pubkey line \
+    "What is $user's public SSH key?" \
+    -v '/ssh-/'
+
+  (
+  echo "    - name:  $user"
+  echo "      shell: $shell"
+  echo "      ssh-keys:"
+  echo "        # you can add more keys as needed..."
+  echo "        - $pubkey"
+  echo
+  ) >>$GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml
+
+  prompt_for addusers boolean \
+    'Would you like to add another user to this jumpbox instance?'
+done
+
+mv $GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml \
+   $GENESIS_ROOT/$GENESIS_ENVIRONMENT.yml
