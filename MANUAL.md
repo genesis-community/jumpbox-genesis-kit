@@ -61,6 +61,19 @@ related components.
   to.  Since jumpbox deployments normally only consist of a single
   VM, this is not useful for high availability.  Defaults to `z1`.
 
+# Cloud Configuration
+
+By default, this kit uses the following VM types/networks/disk pools from your
+Cloud Config. Feel free to override them in your environment, if you would
+rather they use entities already existing in your Cloud Foundry:
+
+```
+params:
+  jumbpox_network:   jumpbox
+  jumpbox_disk_pool: jumpbox # should be at least 50GB
+  jumpbox_vm_type:   jumpbox # VMs should have at least 1 CPU, and 2GB of memory
+```
+
 # Available Features
 
 - `azure` - Replaces BOSH's native "availability zones"

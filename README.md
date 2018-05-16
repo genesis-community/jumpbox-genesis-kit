@@ -38,19 +38,6 @@ information about the versions of things installed.  To run it:
 bosh run-errand inventory
 ```
 
-Cloud Config
-------------
-By default, this kit uses the following VM types/networks/disk pools from your
-Cloud Config. Feel free to override them in your environment, if you would
-rather they use entities already existing in your Cloud Foundry:
-
-```
-params:
-  jumbpox_network:   jumpbox
-  jumpbox_disk_pool: jumpbox # should be at least 50GB
-  jumpbox_vm_type:   jumpbox # VMs should have at least 1 CPU, and 2GB of memory
-```
-
 Learn More
 ----------
 
