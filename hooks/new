@@ -22,12 +22,12 @@ echo "  version: $GENESIS_KIT_VERSION"
 if [[ $openvpn == 'true' ]]; then
   echo "  features:"
   echo "    - openvpn"
-else
-  echo "  features: []"
 fi
 echo
 
 echo "params:"
+echo "  env: $GENESIS_ENVIRONMENT"
+echo
 if [[ $openvpn == 'true' ]]; then
   echo "  vpn_client_routes:"
   for route in ${vpn_client_routes[@]}; do
@@ -52,7 +52,7 @@ fi
 while [[ $addusers == 'true' ]]; do
   prompt_for user line \
     'Account login name' \
-    -v '/^[a-z_][a-z0-9_-]{0,30}$/'
+    --validation '/^[a-z_][a-z0-9_-]{0,30}$/'
 
   prompt_for shell line \
     "What shell will $user use? (/bin/bash, /bin/zsh, etc.)" \
@@ -60,12 +60,12 @@ while [[ $addusers == 'true' ]]; do
 
   prompt_for pubkey line \
     "What is $user's public SSH key?" \
-    -v '/ssh-/'
+    --validation '/ssh-/'
 
   (
   echo "    - name:  $user"
   echo "      shell: $shell"
-  echo "      ssh-keys:"
+  echo "      ssh_keys:"
   echo "        # you can add more keys as needed..."
   echo "        - $pubkey"
   echo
