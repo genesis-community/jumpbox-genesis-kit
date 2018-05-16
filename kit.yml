@@ -1,8 +1,8 @@
 ---
 name:     jumpbox
-homepage: https://github.com/genesis-community/jumpbox-genesis-kit
-github:   https://github.com/genesis-community/jumpbox-genesis-kit
 author:   James Hunt <jhunt@starkandwayne.com>
+docs:     https://github.com/genesis-community/jumpbox-genesis-kit
+code:     https://github.com/genesis-community/jumpbox-genesis-kit
 
 description: |
   This kit creates the manifest to build an isolated bastion jumpbox
