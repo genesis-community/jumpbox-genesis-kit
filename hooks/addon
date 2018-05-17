@@ -152,7 +152,7 @@ inventory)
   ;;
 
 ssh)
-  exec ssh $ip
+  exec ssh $ip "$@"
   ;;
 
 who)
