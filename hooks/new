@@ -77,3 +77,9 @@ done
 
 mv $GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml \
    $GENESIS_ROOT/$GENESIS_ENVIRONMENT.yml
+
+prompt_for edit boolean \
+	'Would you like to edit the environment file?'
+if [[ $edit = 'true' ]]; then
+	exec ${EDITOR:-vim} $GENESIS_ROOT/$GENESIS_ENVIRONMENT.yml
+fi
