@@ -12,6 +12,10 @@ if [[ $openvpn == 'true' ]]; then
   prompt_for vpn_dns_servers multi-line \
     'What DNS servers should OpenVPN advertise to connecting clients?' \
     --min 1
+
+  prompt_for vpn_dns_search_domains multi-line \
+    'What DNS search domains should OpenVPN advertise to connecting clients?' \
+    --min 1
 fi
 
 trap "rm -f $GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml" INT QUIT TERM EXIT
@@ -36,6 +40,10 @@ if [[ $openvpn == 'true' ]]; then
   echo "  vpn_dns_servers:"
   for dns in ${vpn_dns_servers[@]}; do
     echo "    - $dns"
+  done
+  echo "  vpn_dns_search_domains:"
+  for domain in ${vpn_dns_search_domains[@]}; do
+    echo "    - $domain"
   done
   echo
 fi

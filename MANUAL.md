@@ -89,7 +89,7 @@ params:
 
 - `openvpn` - Provides an OpenVPN server, giving users access to
   the internal infrastructure without requiring an SSH session.
-  Intead, users will be issued an X.509 identity certificate which
+  Instead, users will be issued an X.509 identity certificate which
   will grant them access to connect to the VPN and access internal
   resources from their connecting device (usually their own
   workstation).
@@ -106,12 +106,12 @@ params:
     These must be specified in dotted-quad notation, i.e.:
     `192.168.0.0 255.255.255.0` (a /24).
 
-  - `dns_servers` - A list of DNS servers that will be advertised
+  - `vpn_dns_servers` - A list of DNS servers that will be advertised
     to connecting VPN clients.  Most VPN client software will set
     these as the canonical system name resolvers while the VPN is
     connected.
 
-  - `dns_search_domains` - A list of DNS search domains that will
+  - `vpn_dns_search_domains` - A list of DNS search domains that will
     be advertised to connecting VPN clients.  This frees up
     clients from having to type the entire FQDN for name
     resolution to function properly.
