@@ -1,12 +1,32 @@
 #!/bin/bash
 set -eu
 
+cidr2mask() {
+  local i mask=""
+  local full_octets=$(($1/8))
+  local partial_octet=$(($1%8))
+
+  for ((i=0;i<4;i+=1)); do
+    if [ $i -lt $full_octets ]; then
+      mask+=255
+    elif [ $i -eq $full_octets ]; then
+      mask+=$((256 - 2**(8-$partial_octet)))
+    else
+      mask+=0
+    fi  
+    test $i -lt 3 && mask+=.
+  done
+
+  echo $mask
+}
+
+
 prompt_for openvpn boolean \
   'Would you like to use OpenVPN to better control user access?'
 
 if [[ $openvpn == 'true' ]]; then
   prompt_for vpn_client_routes multi-line \
-    'What routes should OpenVPN push to connecting clients?  (192.0.2.0 255.255.255.0 format)' \
+    'What routes should OpenVPN push to connecting clients?  (CIDR format e.g. 10.4.0.0/16)' \
     --min 1
 
   prompt_for vpn_dns_servers multi-line \
@@ -35,7 +55,9 @@ echo
 if [[ $openvpn == 'true' ]]; then
   echo "  vpn_client_routes:"
   for route in ${vpn_client_routes[@]}; do
-    echo "    - $route"
+    IFS='/' read -r -a route_edit <<< $route
+    mask=$(cidr2mask ${route_edit[1]} ${route_edit[0]})
+    echo "    - ${route_edit[0]} $mask"
   done
   echo "  vpn_dns_servers:"
   for dns in ${vpn_dns_servers[@]}; do
