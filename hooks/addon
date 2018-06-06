@@ -1,0 +1,167 @@
+#!/bin/bash
+set -eu
+vault="secret/$GENESIS_VAULT_PREFIX"
+
+ip=$(bosh vms --json | jq -r '.Tables[0].Rows[0].ips')
+
+list() {
+  echo "The following addons are defined:"
+  echo
+  echo "  issue-cert    Issue a new VPN certificate to a named user,"
+  echo "                so that they can access the VPN."
+  echo
+  echo "  revoke-cert   Revokes an issued VPN user certificate, preventing"
+  echo "                them from accessing the VPN."
+  echo
+  echo "  renew-cert    Renew the lifetime of a previously-issued VPN"
+  echo "                certificate, without replacing the user's key."
+  echo
+  echo "  reissue-cert  Re-issue a VPN user certificate, regnerating the"
+  echo "                users key in the first place.  The old certificate"
+  echo "                will be revoked."
+  echo
+  echo "  inventory     Take an inventory of software installed on the jumpbox"
+  echo "                and the versions present."
+  echo
+  echo "  ssh           SSH (interactively) into the jumpbox."
+  echo
+  echo "  who           See who is logged into the jumpbox, via SSH."
+  echo "                (requires the ability to login via SSH)"
+  echo
+}
+
+require_vpn() {
+  if ! want_feature 'openvpn'; then
+    echo >&2 "oops! this addon requires the 'openvpn' feature to be activated"
+    echo >&2 "in the $GENESIS_ENVIRONMENT environment."
+    exit 1
+  fi
+}
+
+issue() {
+  email=${1:-}
+  if [[ -z ${email} ]]; then
+    echo >&2 "USAGE: genesis do <env> -- issue-cert user@email.addr.ess"
+    exit 1
+  fi
+
+  secret=$vault/openvpn/certs/users/$email
+  safe x509 issue --signed-by $vault/openvpn/certs/ca \
+                  --name $email \
+                  --ttl ${CERT_TTL:-180d} \
+                  $secret
+
+  safe x509 show $secret
+
+      echo "To get the certificate:"
+  describe "  #C{safe read $secret:certificate}"
+      echo
+      echo "To get the private key:"
+  describe "  #Y{safe read $secret:key}"
+      echo
+}
+
+revoke() {
+  email=${1:-}
+  if [[ -z ${email} ]]; then
+    echo >&2 "USAGE: genesis do <env> -- revoke-cert user@email.addr.ess"
+    exit 1
+  fi
+
+  secret=$vault/openvpn/certs/users/$email
+  if ! safe exists $secret; then
+    echo "$email does not have a certificate in the Vault"
+    exit 0
+  fi
+  safe x509 revoke --signed-by $vault/openvpn/certs/ca $secret
+  safe rm $secret
+  describe "revoked #Y{$email} VPN user certificate"
+}
+
+renew() {
+  email=${1:-}
+  if [[ -z ${email} ]]; then
+    echo >&2 "USAGE: genesis do <env> -- renew-cert user@email.addr.ess"
+    exit 1
+  fi
+
+  secret=$vault/openvpn/certs/users/$email
+  safe x509 renew $secret
+  safe x509 show $secret
+}
+
+reissue() {
+  email=${1:-}
+  if [[ -z ${email} ]]; then
+    echo >&2 "USAGE: genesis do <env> -- reissue-cert user@email.addr.ess"
+    exit 1
+  fi
+
+  secret=$vault/openvpn/certs/users/$email
+  safe x509 reissue $secret
+  safe x509 show $secret
+}
+
+case $GENESIS_ADDON_SCRIPT in
+list)
+  list
+  exit 0
+  ;;
+
+certs)
+  n=0
+  for secret in $(safe paths $vault/openvpn/certs/users 2>/dev/null); do
+    safe x509 show $secret; echo ; echo
+    n=$(( n + 1 ))
+  done
+  echo "$n VPN user certificates found"
+  ;;
+
+issue-cert)
+  require_vpn
+  issue "$@"
+  ;;
+
+revoke-cert)
+  require_vpn
+  revoke "$@"
+  ;;
+
+renew-cert)
+  require_vpn
+  echo ; describe "#R{renewal is not yet available, since safe hasn't been updated to support it...}"
+  exit 1
+  renew "$@"
+  ;;
+
+renew-all-certs)
+  require_vpn
+  echo ; describe "#R{renewal is not yet available, since safe hasn't been updated to support it...}"
+  exit 1
+  ;;
+
+reissue-cert)
+  require_vpn
+  echo ; describe "#R{reissue is not yet available, since safe hasn't been updated to support it...}"
+  exit 1
+  reissue "$@"
+  ;;
+
+inventory)
+  exec bosh run-errand inventory
+  ;;
+
+ssh)
+  exec ssh $ip "$@"
+  ;;
+
+who)
+  exec ssh $ip -- who
+  ;;
+
+*)
+  echo "Unrecognized Jumpbox Genesis Kit addon."
+  list
+  exit 1
+  ;;
+esac

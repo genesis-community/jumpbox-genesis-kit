@@ -1,0 +1,5 @@
+#!/bin/bash
+set -eu
+ip=$(bosh vms --json | jq -r '.Tables[0].Rows[0].ips')
+
+describe "jumpbox ip: #C{$ip}"
