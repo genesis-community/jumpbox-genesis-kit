@@ -76,17 +76,6 @@ params:
 
 # Available Features
 
-- `azure` - Replaces BOSH's native "availability zones"
-  configuration in favor of Azure's "availability set" concept.
-  This is required for HA and fault tolerance when running on
-  Microsoft Azure.  `genesis new` will auto-detect the need for
-  this feature, based on the BOSH director's CPI.
-
-  Activating this feature also activates the following parameters:
-
-  - `azure_availability_set` - The name of the availability set to
-    use for HA in Azure.  Defaults to `vault_as`.
-
 - `openvpn` - Provides an OpenVPN server, giving users access to
   the internal infrastructure without requiring an SSH session.
   Instead, users will be issued an X.509 identity certificate which
@@ -137,25 +126,32 @@ params:
 
 # Available Addons
 
-  - `issue-cert` - Issue an X.509 certificate to a user, so that they
-    can connect and authenticate to the VPN.  Requires the `openvpn`
-    feature to be active.
-
-  - `revoke-cert` - Revoke an issued X.509 VPN certificate.
-
-  - `renew-cert` - Renew the lifetime of an existing X.509 VPN
-    certificate, without changing the key that the user has.
-
-  - `reissue-cert` - Reissue an X.509 VPN certificate, and
-    generate a new key in the process.  This is useful if, for
-    example, a key has been lost or compromised.  The old
-    certificate will be revoked.
-
   - `inventory` - Run the inventory errand against the deployment.
 
   - `ssh` - SSH into the jumpbox (interactively).
 
   - `who` - SSH into the jumpbox and determine who is logged in.
+
+If the `openvpn` feature is enabled, the following addons are also available:
+
+  - `certs` - List all the X.509 VPN certificates for the users registered on 
+    this jumpbox.
+
+  - `issue-cert <user>` - Issue an X.509 certificate to a user, so that they
+    can connect and authenticate to the VPN.
+
+  - `revoke-cert <user>` - Revoke an issued X.509 VPN certificate.
+
+  - `renew-cert <user>` - Renew the lifetime of an existing X.509 VPN
+    certificate, without changing the key that the user has.
+
+  - `renew-all-certs` - Renew the lifetime of an existing X.509 VPN
+    certificate, without changing the key that the user has.
+
+  - `reissue-cert <user>` - Reissue an X.509 VPN certificate, and
+    generate a new key in the process.  This is useful if, for
+    example, a key has been lost or compromised.  The old
+    certificate will be revoked.
 
 # Examples
 

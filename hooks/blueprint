@@ -4,7 +4,7 @@ set -eu
 declare -a merge
 
 validate_features openvpn \
-                  proxy azure shield
+                  proxy azure shield # defunct
 
 merge=( manifests/jumpbox.yml )
 
@@ -21,7 +21,14 @@ for want in ${GENESIS_REQUESTED_FEATURES[@]}; do
     exit 1
     ;;
 
-  proxy|azure)
+  azure)
+    echo >&2 "The Jumpbox Genesis Kit no longer supplies a 'azure' feature flag."
+    echo >&2 "This is because the 'azure' feature only impacted availability zones"
+    echo >&2 "and sets, which have no impact on a single-instance deployment."
+    ;;
+
+
+  proxy)
     echo >&2 "You no longer need to explicitly specify the 'proxy' feature."
     echo >&2 "If you remove it, everything will still work as expected."
     ;;

@@ -42,8 +42,9 @@ trap "rm -f $GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml" INT QUIT TERM EXIT
 echo "kit:"
 echo "  name:    $GENESIS_KIT_NAME"
 echo "  version: $GENESIS_KIT_VERSION"
+echo "  features:"
+echo "    - (( replace ))"
 if [[ $openvpn == 'true' ]]; then
-  echo "  features:"
   echo "    - openvpn"
 fi
 echo

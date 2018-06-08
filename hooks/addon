@@ -7,26 +7,36 @@ ip=$(bosh vms --json | jq -r '.Tables[0].Rows[0].ips')
 list() {
   echo "The following addons are defined:"
   echo
-  echo "  issue-cert    Issue a new VPN certificate to a named user,"
-  echo "                so that they can access the VPN."
+  echo "  inventory           Take an inventory of software installed on the"
+  echo "                      jumpbox and the versions present."
   echo
-  echo "  revoke-cert   Revokes an issued VPN user certificate, preventing"
-  echo "                them from accessing the VPN."
+  echo "  ssh                 SSH (interactively) into the jumpbox."
   echo
-  echo "  renew-cert    Renew the lifetime of a previously-issued VPN"
-  echo "                certificate, without replacing the user's key."
+  echo "  who                 See who is logged into the jumpbox, via SSH."
+  echo "                      (requires the ability to login via SSH)"
   echo
-  echo "  reissue-cert  Re-issue a VPN user certificate, regnerating the"
-  echo "                users key in the first place.  The old certificate"
-  echo "                will be revoked."
+  echo "If the 'openvpn' feature has been enabled, the following addons are also"
+  echo "available:"
   echo
-  echo "  inventory     Take an inventory of software installed on the jumpbox"
-  echo "                and the versions present."
+  echo "  certs               List the VPN certificates for the users defined"
+  echo "                      on the given jumpbox environment."
   echo
-  echo "  ssh           SSH (interactively) into the jumpbox."
+  echo "  issue-cert <user>   Issue a new VPN certificate to a named user,"
+  echo "                      so that they can access the VPN."
   echo
-  echo "  who           See who is logged into the jumpbox, via SSH."
-  echo "                (requires the ability to login via SSH)"
+  echo "  revoke-cert <user>  Revokes an issued VPN user certificate, preventing"
+  echo "                      them from accessing the VPN."
+  echo
+  echo "  renew-cert <user>   Renew the lifetime of a previously-issued VPN"
+  echo "                      certificate, without replacing the user's key."
+  echo
+  echo "  renew-all-certs     Renews the lifetime of all previously-issued VPN"
+  echo "                      certificates on the server, without replacing the"
+  echo "                      keys"
+  echo
+  echo "  reissue-cert <user> Re-issue a VPN user certificate, regnerating the"
+  echo "                      users key in the first place.  The old certificate"
+  echo "                      will be revoked."
   echo
 }
 
