@@ -1,4 +1,11 @@
 ---
+params:
+  vpn_client_network: 172.31.255.0
+  vpn_client_netmask: 255.255.255.0
+
+  vpn_client_routes:      (( param "What networks should be advertised to clients over the VPN? (e.g. 10.1.0.0 255.255.0.0" ))
+  vpn_dns_servers:        (( param "What DNS servers should be advertised to clients over the VPN?" ))
+
 instance_groups:
 - name: jumpbox
   jobs:
@@ -23,7 +30,7 @@ properties:
     push_routes: (( grab params.vpn_client_routes ))
     push_dns: (( grab params.vpn_dns_servers ))
     push_dns_search_domains: (( grab params.vpn_dns_search_domains ))
-    tls_version_min: (( grab params.vpn_min_tls_version ))
+    tls_version_min: (( grab params.vpn_min_tls_version || "1.1" ))
 
 releases:
 - name: openvpn

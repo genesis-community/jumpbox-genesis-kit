@@ -1,3 +1,0 @@
----
-params:
-  shield_public_key_vault_path: (( param "Please specify vault path for the shield public key" ))
