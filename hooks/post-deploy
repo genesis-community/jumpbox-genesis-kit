@@ -2,7 +2,8 @@
 set -eu
 
 if [[ $GENESIS_DEPLOY_RC == 0 ]]; then
-  ip=$(bosh vms --json | jq -r '.Tables[0].Rows[0].ips')
+  declare -a ips
+  ips=( $(bosh vms --json | jq -r '.Tables[0].Rows[0].ips') )
 
       echo; echo;
   describe "#M{$GENESIS_ENVIRONMENT} Jumpbox deployed!"
@@ -17,6 +18,6 @@ if [[ $GENESIS_DEPLOY_RC == 0 ]]; then
       echo
       echo "or:"
       echo
-  describe "  #W{ssh ${ip}}"
+  describe "  #W{ssh ${ips[0]}}"
       echo
 fi

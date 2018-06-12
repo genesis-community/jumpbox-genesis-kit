@@ -1,8 +1,8 @@
 #!/bin/bash
 set -eu
 vault="secret/$GENESIS_VAULT_PREFIX"
-
-ip=$(bosh vms --json | jq -r '.Tables[0].Rows[0].ips')
+declare -a ips
+ips( =$(bosh vms --json | jq -r '.Tables[0].Rows[0].ips') )
 
 list() {
   echo "The following addons are defined:"
@@ -162,11 +162,11 @@ inventory)
   ;;
 
 ssh)
-  exec ssh $ip "$@"
+  exec ssh ${ips[0]} "$@"
   ;;
 
 who)
-  exec ssh $ip -- who
+  exec ssh ${ips[0]} -- who
   ;;
 
 *)
