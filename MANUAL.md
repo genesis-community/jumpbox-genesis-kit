@@ -76,6 +76,14 @@ params:
 
 # Available Features
 
+- `bastion` - Dual-home a jumpbox, turning it into a _bastion_
+  host that straddles two networks.
+
+  Activating this feature also activates the following parameters:
+
+  - `inside_network` - The name of the network to add a secondary,
+    inside network interface.  This paremeter is **required**.
+
 - `openvpn` - Provides an OpenVPN server, giving users access to
   the internal infrastructure without requiring an SSH session.
   Instead, users will be issued an X.509 identity certificate which

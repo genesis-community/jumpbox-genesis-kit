@@ -1,0 +1,10 @@
+---
+params:
+  inside_network: (( param "Please specify the name of the Bastion Network from your cloud-config" ))
+
+instance_groups:
+  - name: jumpbox
+    networks:
+      - (( inline ))
+      - default: [dns, gateway]
+      - name: (( grab params.inside_network ))
