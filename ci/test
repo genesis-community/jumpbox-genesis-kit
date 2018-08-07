@@ -35,6 +35,9 @@ safe ssh secret/genesis-ci/jumpbox/TEMP/test-user-ssh-key
 #safe cp -rf secret/genesis-ci/static/jumpbox secret/genesis-ci/jumpbox/ci/baseline
 
 header "Deploying BASELINE environment to verify functionality..."
+cd dev
+genesis compile-kit --name jumpbox -v 9.9.9 --force # make sure hooks are executable before screaming at shipit for failing.
+cd ..
 genesis secrets --vault da-vault add ci-baseline
 genesis deploy -n ci-baseline
 $BOSH -d ci-baseline-jumpbox instances --ps
