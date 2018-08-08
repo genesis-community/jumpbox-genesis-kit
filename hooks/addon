@@ -2,7 +2,7 @@
 set -eu
 vault="secret/$GENESIS_VAULT_PREFIX"
 declare -a ips
-ips( =$(bosh vms --json | jq -r '.Tables[0].Rows[0].ips') )
+ips=( $(bosh vms --json | jq -r '.Tables[0].Rows[0].ips') )
 
 list() {
   echo "The following addons are defined:"
