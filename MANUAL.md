@@ -131,6 +131,17 @@ params:
     will require for transactions to proceed.  Defaults to `1.1`,
     but can be downgraded to allow TLS `1.0` or upgraded to
     require TLS `1.2`.
+  
+  - `vpn_iptables_forward` - iptables rules required for VPN traffic
+    to flow properly. Automatically generated via `genesis new` however
+    these can be modified or added to.
+
+  - `vpn_external_ip` - External IP to set in the ovpn config for client
+    access. Defaults to the IP address of the jumpbox but can be overridden
+    if VPN traffic is routed via another address to the jumpbox.
+
+  - `vpn_external_port` - Port to set in the ovpn config for client access.
+    Defaults to 443 but can be overridden similar to the above IP parameter.
 
 # Available Addons
 
@@ -160,6 +171,10 @@ If the `openvpn` feature is enabled, the following addons are also available:
     generate a new key in the process.  This is useful if, for
     example, a key has been lost or compromised.  The old
     certificate will be revoked.
+  
+  - `generate-vpn-config <user>` - Generate a client certificate
+    (if missing) and a new (or updated) openvpn config file for a 
+    given user
 
 # Examples
 

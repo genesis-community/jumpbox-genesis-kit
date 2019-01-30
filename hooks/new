@@ -54,14 +54,23 @@ echo
 if [[ $openvpn == 'true' ]]; then
   echo "  vpn_client_routes:"
   for route in ${vpn_client_routes[@]}; do
-    IFS='/' read -r -a route_edit <<< $route
-    mask=$(cidr2mask ${route_edit[1]} ${route_edit[0]})
-    echo "    - ${route_edit[0]} $mask"
+    mask=$(cidr2mask $(echo $route | sed 's:.*/::'))
+    echo "    - $(echo $route | sed 's:/.*::') $mask"
   done
+
+  echo "  vpn_iptables_forward:"
+  for route in ${vpn_client_routes[@]}; do
+    # Currently 172.x is the hardcoded client network, if overridden these rules will also need to be updated
+    echo "    - -s 172.31.255.0/24 -d $route -m conntrack --ctstate NEW -j ACCEPT -m comment --comment 'vpn -> lan'"
+    echo "    - -s $route -d 172.31.255.0/24 -m conntrack --ctstate NEW -j ACCEPT -m comment --comment 'lan -> vpn'"
+  done
+  echo "    - -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT"
+  
   echo "  vpn_dns_servers:"
   for dns in ${vpn_dns_servers[@]}; do
     echo "    - $dns"
   done
+  
   echo "  vpn_dns_search_domains:"
   for domain in ${vpn_dns_search_domains[@]}; do
     echo "    - $domain"
