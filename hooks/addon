@@ -67,14 +67,15 @@ issue() {
                   --ttl ${CERT_TTL:-180d} \
                   $secret
 
-  safe x509 show $secret
-
+  if [[ ${2:-x} != "--quiet" ]]; then
+    safe x509 show $secret
       echo "To get the certificate:"
-  describe "  #C{safe read $secret:certificate}"
+    describe "  #C{safe read $secret:certificate}"
       echo
       echo "To get the private key:"
-  describe "  #Y{safe read $secret:key}"
+    describe "  #Y{safe read $secret:key}"
       echo
+  fi
 }
 
 revoke() {
@@ -125,40 +126,38 @@ generate_vpn_config() {
     exit 1
   fi
   if ! safe --quiet check $vault/openvpn/certs/users/$email; then
-    echo "Generating new openvpn client certificate for $email"
-    issue $email
+    echo >&2 "Generating new openvpn client certificate for $email"
+    issue $email --quiet
   fi
-  echo "Generating $email.ovpn config file..."
-  if [[ $ips == null ]]; then
-    echo "Failed to get VPN External IP from BOSH or Params - check your connection to BOSH or params file"
+  if [[ $(lookup params.vpn_external_ip  $ips) == null ]]; then
+    echo >&2 "Failed to get VPN External IP from BOSH or Params - check your connection to BOSH or params file"
     exit 1
   fi
-  (
-    echo "client"
-    echo "dev tun"
-    echo "proto tcp"
-    echo "remote $(lookup params.vpn_external_ip  $ips) $(lookup params.vpn_external_port  443)"
-    echo "resolv-retry infinite"
-    echo "nobind"
-    echo "persist-key"
-    echo "persist-tun"
-    echo "mute-replay-warnings"
-    echo "remote-cert-tls server"
-    echo "verb 3"
-    echo "mute 20"
-    echo "tls-client"
-    echo "cipher AES-256-CBC"
-    echo "keysize 256"
-    echo "<ca>"
-    safe get $vault/openvpn/certs/ca:certificate
-    echo "</ca>"
-    echo "<cert>"
-    safe get $vault/openvpn/certs/users/$email:certificate
-    echo "</cert>"
-    echo "<key>"
-    safe get $vault/openvpn/certs/users/$email:key
-    echo "</key>"
-  ) >$GENESIS_ROOT/$email.ovpn
+
+  echo "client"
+  echo "dev tun"
+  echo "proto tcp"
+  echo "remote $(lookup params.vpn_external_ip  $ips) $(lookup params.vpn_external_port  443)"
+  echo "resolv-retry infinite"
+  echo "nobind"
+  echo "persist-key"
+  echo "persist-tun"
+  echo "mute-replay-warnings"
+  echo "remote-cert-tls server"
+  echo "verb 3"
+  echo "mute 20"
+  echo "tls-client"
+  echo "cipher AES-256-CBC"
+  echo "keysize 256"
+  echo "<ca>"
+  safe get $vault/openvpn/certs/ca:certificate
+  echo "</ca>"
+  echo "<cert>"
+  safe get $vault/openvpn/certs/users/$email:certificate
+  echo "</cert>"
+  echo "<key>"
+  safe get $vault/openvpn/certs/users/$email:key
+  echo "</key>"
 }
 
 case $GENESIS_ADDON_SCRIPT in
