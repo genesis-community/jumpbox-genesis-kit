@@ -6,5 +6,6 @@
 # Updates
 
 * Updated to use Xenial Stemcells **(170.x and later)**
-* Bump to Jumpbox-Release 4.5.0
+* Bump to Jumpbox-Release 4.5.2
 * Updated OpenVPN addon and configs to improve QoL and compatibility
+* Updated bosh and shield CLIs
