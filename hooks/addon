@@ -18,25 +18,28 @@ list() {
   echo "If the 'openvpn' feature has been enabled, the following addons are also"
   echo "available:"
   echo
-  echo "  certs               List the VPN certificates for the users defined"
-  echo "                      on the given jumpbox environment."
+  echo "  generate-vpn-config <user>  Generate a client certificate (if missing)"
+  echo "                              and an openvpn config file for a given user"
   echo
-  echo "  issue-cert <user>   Issue a new VPN certificate to a named user,"
-  echo "                      so that they can access the VPN."
+  echo "  certs                       List the VPN certificates for the users defined"
+  echo "                              on the given jumpbox environment."
   echo
-  echo "  revoke-cert <user>  Revokes an issued VPN user certificate, preventing"
-  echo "                      them from accessing the VPN."
+  echo "  issue-cert <user>           Issue a new VPN certificate to a named user,"
+  echo "                              so that they can access the VPN."
   echo
-  echo "  renew-cert <user>   Renew the lifetime of a previously-issued VPN"
-  echo "                      certificate, without replacing the user's key."
+  echo "  revoke-cert <user>          Revokes an issued VPN user certificate, preventing"
+  echo "                              them from accessing the VPN."
   echo
-  echo "  renew-all-certs     Renews the lifetime of all previously-issued VPN"
-  echo "                      certificates on the server, without replacing the"
-  echo "                      keys"
+  echo "  renew-cert <user>           Renew the lifetime of a previously-issued VPN"
+  echo "                              certificate, without replacing the user's key."
   echo
-  echo "  reissue-cert <user> Re-issue a VPN user certificate, regnerating the"
-  echo "                      users key in the first place.  The old certificate"
-  echo "                      will be revoked."
+  echo "  renew-all-certs             Renews the lifetime of all previously-issued VPN"
+  echo "                              certificates on the server, without replacing the"
+  echo "                              keys"
+  echo
+  echo "  reissue-cert <user>         Re-issue a VPN user certificate, regnerating the"
+  echo "                              users key in the first place.  The old certificate"
+  echo "                              will be revoked."
   echo
 }
 
@@ -58,17 +61,21 @@ issue() {
   secret=$vault/openvpn/certs/users/$email
   safe x509 issue --signed-by $vault/openvpn/certs/ca \
                   --name $email \
+                  -u digital_signature \
+                  -u key_encipherment \
+                  -u client_auth \
                   --ttl ${CERT_TTL:-180d} \
                   $secret
 
-  safe x509 show $secret
-
+  if [[ ${2:-x} != "--quiet" ]]; then
+    safe x509 show $secret
       echo "To get the certificate:"
-  describe "  #C{safe read $secret:certificate}"
+    describe "  #C{safe read $secret:certificate}"
       echo
       echo "To get the private key:"
-  describe "  #Y{safe read $secret:key}"
+    describe "  #Y{safe read $secret:key}"
       echo
+  fi
 }
 
 revoke() {
@@ -96,7 +103,7 @@ renew() {
   fi
 
   secret=$vault/openvpn/certs/users/$email
-  safe x509 renew $secret
+  safe x509 renew --signed-by $vault/openvpn/certs/ca $secret
   safe x509 show $secret
 }
 
@@ -108,8 +115,49 @@ reissue() {
   fi
 
   secret=$vault/openvpn/certs/users/$email
-  safe x509 reissue $secret
+  safe x509 reissue --signed-by $vault/openvpn/certs/ca $secret
   safe x509 show $secret
+}
+
+generate_vpn_config() {
+  email=${1:-}
+  if [[ -z ${email} ]]; then
+    echo >&2 "USAGE: genesis do <env> generate-vpn-config user@email.addr.ess"
+    exit 1
+  fi
+  if ! safe --quiet check $vault/openvpn/certs/users/$email; then
+    echo >&2 "Generating new openvpn client certificate for $email"
+    issue $email --quiet
+  fi
+  if [[ $(lookup params.vpn_external_ip  $ips) == null ]]; then
+    echo >&2 "Failed to get VPN External IP from BOSH or Params - check your connection to BOSH or params file"
+    exit 1
+  fi
+
+  echo "client"
+  echo "dev tun"
+  echo "proto tcp"
+  echo "remote $(lookup params.vpn_external_ip  $ips) $(lookup params.vpn_external_port  443)"
+  echo "resolv-retry infinite"
+  echo "nobind"
+  echo "persist-key"
+  echo "persist-tun"
+  echo "mute-replay-warnings"
+  echo "remote-cert-tls server"
+  echo "verb 3"
+  echo "mute 20"
+  echo "tls-client"
+  echo "cipher AES-256-CBC"
+  echo "keysize 256"
+  echo "<ca>"
+  safe get $vault/openvpn/certs/ca:certificate
+  echo "</ca>"
+  echo "<cert>"
+  safe get $vault/openvpn/certs/users/$email:certificate
+  echo "</cert>"
+  echo "<key>"
+  safe get $vault/openvpn/certs/users/$email:key
+  echo "</key>"
 }
 
 case $GENESIS_ADDON_SCRIPT in
@@ -139,22 +187,25 @@ revoke-cert)
 
 renew-cert)
   require_vpn
-  echo ; describe "#R{renewal is not yet available, since safe hasn't been updated to support it...}"
-  exit 1
   renew "$@"
   ;;
 
 renew-all-certs)
   require_vpn
-  echo ; describe "#R{renewal is not yet available, since safe hasn't been updated to support it...}"
-  exit 1
+  for secret in $(safe paths $vault/openvpn/certs/users 2>/dev/null); do
+    safe x509 renew --signed-by $vault/openvpn/certs/ca $secret
+    safe x509 show $secret
+  done
   ;;
 
 reissue-cert)
   require_vpn
-  echo ; describe "#R{reissue is not yet available, since safe hasn't been updated to support it...}"
-  exit 1
   reissue "$@"
+  ;;
+
+generate-vpn-config)
+  require_vpn
+  generate_vpn_config "$@"
   ;;
 
 inventory)

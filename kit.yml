@@ -11,15 +11,6 @@ description: |
   to restrict access to other boxes in you BOSH deployments, along
   with a set of common tools and consistant user setup.
 
-certificates:
-  openvpn:
-    openvpn/certs:
-      ca: { valid_for: 1y }
-      server:
-        valid_for: 6m
-        names:
-          - server.openvpn
-
 credentials:
   openvpn:
     openvpn/dh_params: dhparams 2048

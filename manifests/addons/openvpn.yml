@@ -5,35 +5,47 @@ params:
 
   vpn_client_routes:      (( param "What networks should be advertised to clients over the VPN? (e.g. 10.1.0.0 255.255.0.0" ))
   vpn_dns_servers:        (( param "What DNS servers should be advertised to clients over the VPN?" ))
+  vpn_iptables_forward:   (( param "What iptables rules do you want applied to allow VPN traffic?" ))
 
 instance_groups:
 - name: jumpbox
   jobs:
   - name: openvpn
     release: openvpn
+    properties:
+      port: 443
+      server:     (( concat params.vpn_client_network " " params.vpn_client_netmask ))
+      push_routes: (( grab params.vpn_client_routes ))
+      push_dns: (( grab params.vpn_dns_servers ))
+      push_dns_search_domains: (( grab params.vpn_dns_search_domains ))
+      
+      dh_pem:     (( vault meta.vault "/openvpn/dh_params:dhparam-pem" ))
+      tls_server:
+        certificate: (( vault meta.vault "/openvpn/certs/server:certificate" ))
+        private_key: (( vault meta.vault "/openvpn/certs/server:key" ))
+        ca:     (( vault meta.vault "/openvpn/certs/ca:certificate" ))
+      tls_crl:    (( vault meta.vault "/openvpn/certs/ca:crl" ))
+      tls_version_min: (( grab params.vpn_min_tls_version || "1.2" ))
 
-properties:
-  openvpn:
-    port: 443
-    server_crt: (( vault meta.vault "/openvpn/certs/server:certificate" ))
-    server_key: (( vault meta.vault "/openvpn/certs/server:key" ))
-    ca_crt:     (( vault meta.vault "/openvpn/certs/ca:certificate" ))
-    crl_crt:    (( vault meta.vault "/openvpn/certs/ca:crl" ))
-    dh_pem:     (( vault meta.vault "/openvpn/dh_params:dhparam-pem" ))
-    server:     (( concat params.vpn_client_network " " params.vpn_client_netmask ))
+      cipher: AES-256-CBC
 
-    cipher: AES-256-CBC
-
-    iptables:
-    - (( concat "POSTROUTING -t nat -s " params.vpn_client_network "/" params.vpn_client_netmask " -j MASQUERADE" ))
-
-    push_routes: (( grab params.vpn_client_routes ))
-    push_dns: (( grab params.vpn_dns_servers ))
-    push_dns_search_domains: (( grab params.vpn_dns_search_domains ))
-    tls_version_min: (( grab params.vpn_min_tls_version || "1.1" ))
+  - name: iptables
+    release: networking
+    properties:
+      iptables:
+        filter:
+          FORWARD: (( grab params.vpn_iptables_forward ))
+        nat:
+          POSTROUTING:
+          - (( concat "-s " params.vpn_client_network "/" params.vpn_client_netmask " -d 0/0 -j MASQUERADE" ))
 
 releases:
 - name: openvpn
-  version: 3.2.0
-  sha1: 39b4ae933230f82b0613829e1979abf7375136ee
-  url: https://bosh.io/d/github.com/dpb587/openvpn-bosh-release?v=3.2.0
+  version: 5.2.0
+  url: "https://bosh.io/d/github.com/dpb587/openvpn-bosh-release?v=5.2.0"
+  sha1: "928b67370d64c1620f506264f9bfd5b8473a2acb"
+
+- name: networking
+  sha1: 9b5f9d27917c3754e492470ac6c9af80d62963db
+  url: http://bosh.io/d/github.com/cloudfoundry/networking-release?v=9
+  version: 9
