@@ -148,7 +148,6 @@ generate_vpn_config() {
   echo "mute 20"
   echo "tls-client"
   echo "cipher AES-256-CBC"
-  echo "keysize 256"
   echo "<ca>"
   safe get $vault/openvpn/certs/ca:certificate
   echo "</ca>"
