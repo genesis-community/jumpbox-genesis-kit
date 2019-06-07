@@ -140,8 +140,16 @@ params:
     access. Defaults to the IP address of the jumpbox but can be overridden
     if VPN traffic is routed via another address to the jumpbox.
 
+  - `vpn_protocol` - Protocol to be used for VPN connections (`i.e. udp or tcp`).
+
   - `vpn_external_port` - Port to set in the ovpn config for client access.
     Defaults to 443 but can be overridden similar to the above IP parameter.
+
+  - `vpn_compress` - Compression algorithm to be used for VPN connections (`i.e. auto, lzo, lz4, lz4-v2`).
+
+  - `vpn_extra_configs` - List of additional OpenVPN server configuration options.
+
+  - `vpn_extra_client_configs` - List of additional OpenVPN client configuration options.
 
 # Available Addons
 
