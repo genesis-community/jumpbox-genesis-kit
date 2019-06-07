@@ -136,7 +136,7 @@ generate_vpn_config() {
 
   echo "client"
   echo "dev tun"
-  echo "proto tcp"
+  echo "proto $(lookup params.vpn_protocol  tcp)"
   echo "remote $(lookup params.vpn_external_ip  $ips) $(lookup params.vpn_external_port  443)"
   echo "resolv-retry infinite"
   echo "nobind"
@@ -148,6 +148,8 @@ generate_vpn_config() {
   echo "mute 20"
   echo "tls-client"
   echo "cipher AES-256-CBC"
+  echo "compress $(lookup params.vpn_compress  auto)"
+  echo "$(lookup params.vpn_extra_client_configs | jq -r '.[]')"
   echo "<ca>"
   safe get $vault/openvpn/certs/ca:certificate
   echo "</ca>"
