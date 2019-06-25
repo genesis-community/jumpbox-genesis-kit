@@ -1,5 +1,6 @@
 #!/bin/bash
 set -eu
+KIT=jumpbox
 
 header() {
 	echo
@@ -21,29 +22,24 @@ cleanup() {
 	done
 }
 
-header "Validating BOSH_* environment variables..."
-set | grep BOSH_ || true
-
 header "Checking previous deployments on ${BOSH_ENVIRONMENT}..."
 $BOSH deployments
 
 header "Cleaning up from any previous deployments (if necessary)..."
-cleanup ci-baseline-jumpbox
-safe rm -rf secret/genesis-ci/jumpbox
-safe ssh secret/genesis-ci/jumpbox/TEMP/test-user-ssh-key
-# ci-baseline doesn't rely on external secrets
-#safe cp -rf secret/genesis-ci/static/jumpbox secret/genesis-ci/jumpbox/ci/baseline
+cleanup ci-baseline-${KIT}
+safe rm -rf secret/ci/baseline/${KIT}
+safe ssh secret/ci/baseline/${KIT}/test-user
 
 header "Deploying BASELINE environment to verify functionality..."
 cd dev
-genesis compile-kit --name jumpbox -v 9.9.9 --force # make sure hooks are executable before screaming at shipit for failing.
+# make sure hooks are executable before screaming at shipit for failing.
+genesis compile-kit --name $KIT -v 9.9.9 --force
 cd ..
-genesis secrets add ci-baseline
-genesis deploy -n ci-baseline
-$BOSH -d ci-baseline-jumpbox instances --ps
+genesis add-secrets ci-baseline
+genesis deploy -y ci-baseline
+$BOSH -d ci-baseline-${KIT} instances --ps
 
 header "Validating BASELINE environment (via inventory errand)"
-$BOSH -d ci-baseline-jumpbox run-errand inventory
+$BOSH -d ci-baseline-${KIT} run-errand inventory
 
-header "Cleaning up BASELINE environment..."
-cleanup ci-baseline-jumpbox
+cleanup ci-baseline-${KIT}
