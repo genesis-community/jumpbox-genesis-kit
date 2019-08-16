@@ -6,7 +6,7 @@ params:
   vpn_client_routes:      (( param "What networks should be advertised to clients over the VPN? (e.g. 10.1.0.0 255.255.0.0" ))
   vpn_dns_servers:        (( param "What DNS servers should be advertised to clients over the VPN?" ))
   vpn_iptables_forward:   (( param "What iptables rules do you want applied to allow VPN traffic?" ))
-  
+
   vpn_protocol: tcp
   vpn_compress: auto
   vpn_extra_configs: []
@@ -26,7 +26,7 @@ instance_groups:
       push_routes: (( grab params.vpn_client_routes ))
       push_dns: (( grab params.vpn_dns_servers ))
       push_dns_search_domains: (( grab params.vpn_dns_search_domains ))
-      
+
       dh_pem:     (( vault meta.vault "/openvpn/dh_params:dhparam-pem" ))
       tls_server:
         certificate: (( vault meta.vault "/openvpn/certs/server:certificate" ))
