@@ -1,3 +1,11 @@
+# Software updates
+
+- `jumpbox-boshrelease` is now at [v4.6.1][1]
+- `toolbelt-boshrelease` is now at [v3.4.4][2]
+
+[1]: https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/tag/v4.6.1
+[2]: https://github.com/cloudfoundry-community/toolbelt-boshrelease/releases/tag/v3.4.4
+
 # Improvements
 
 - OpenVPN server-side configuration is now more configurable.
