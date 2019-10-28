@@ -148,7 +148,7 @@ generate_vpn_config() {
   echo "mute 20"
   echo "tls-client"
   echo "cipher AES-256-CBC"
-  echo "compress $(lookup params.vpn_compress  auto)"
+  echo "compress $(lookup params.vpn_compress lz4-v2)"
   echo "$(lookup params.vpn_extra_client_configs | jq -r '.[]')"
   echo "<ca>"
   safe get $vault/openvpn/certs/ca:certificate
