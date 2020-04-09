@@ -1,15 +1,32 @@
 ---
 name:     jumpbox
-author:   James Hunt <jhunt@starkandwayne.com>
+version:  1.1.0
+authors:  [ James Hunt <jhunt@starkandwayne.com>,
+            Dennis Bell <dbell@starkandwayne.com> ]
 docs:     https://github.com/genesis-community/jumpbox-genesis-kit
 code:     https://github.com/genesis-community/jumpbox-genesis-kit
 
-genesis_version_min: 2.6.0
+genesis_version_min: 2.7.0
 
 description: |
   This kit creates the manifest to build an isolated bastion jumpbox
   to restrict access to other boxes in you BOSH deployments, along
   with a set of common tools and consistant user setup.
+
+certificates:
+  openvpn:
+    openvpn/certs:
+      ca:
+        valid_for: ${params.ca_validity_period}
+        names:     [ ca.openvpn ]
+        usage:     [ crl_sign,
+                     key_cert_sign ]
+      server:
+        valid_for: ${params.cert_validity_period}
+        names:     [ server.openvpn ]
+        usage:     [ server_auth,
+                     digital_signature,
+                     key_encipherment   ]
 
 credentials:
   openvpn:

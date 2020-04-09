@@ -1,5 +1,14 @@
 #!/bin/bash
-set -eu
+set -u
+
+#Version check
+min_version="2.7.0"
+genesis_version="$(genesis -v 2>&1 | grep '^Genesis v' | sed -e 's/Genesis v\(.*\) (.*$/\1/')"
+if ! [[ "$genesis_version" =~ -dev$ ]] && ! new_enough "$genesis_version" "$min_version" ; then
+  describe >&2 "" "#R{[ERROR]} This kit needs Genesis $min_version.  Please upgrade before continuing" ""
+  exit 1
+fi
+set -e
 
 cidr2mask() {
   local i mask=""
@@ -10,7 +19,7 @@ cidr2mask() {
     if [ $i -lt $full_octets ]; then
       mask+=255
     elif [ $i -eq $full_octets ]; then
-      mask+=$((256 - 2**(8-$partial_octet)))
+      mask+=$((256 - 2**(8-partial_octet)))
     else
       mask+=0
     fi  
@@ -19,25 +28,29 @@ cidr2mask() {
 
   echo $mask
 }
-
+openvpn= # Assigned below
 prompt_for openvpn boolean \
   'Would you like to use OpenVPN to better control user access?'
 
-if [[ $openvpn == 'true' ]]; then
+if [[ "$openvpn" == 'true' ]]; then
+  vpn_client_routes= # Assigned below
   prompt_for vpn_client_routes multi-line \
     'What routes should OpenVPN push to connecting clients?  (CIDR format e.g. 10.4.0.0/16)' \
     --min 1
 
+  vpn_dns_servers=
   prompt_for vpn_dns_servers multi-line \
     'What DNS servers should OpenVPN advertise to connecting clients?' \
     --min 1
 
+  vpn_dns_search_domains=
   prompt_for vpn_dns_search_domains multi-line \
     'What DNS search domains should OpenVPN advertise to connecting clients?' \
     --min 1
 fi
 
-trap "rm -f $GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml" INT QUIT TERM EXIT
+# shellcheck disable=2064
+trap "rm -f '$GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml'" INT QUIT TERM EXIT
 (
 echo "kit:"
 echo "  name:    $GENESIS_KIT_NAME"
@@ -48,18 +61,19 @@ if [[ $openvpn == 'true' ]]; then
 fi
 echo
 
-echo "params:"
-echo "  env: $GENESIS_ENVIRONMENT"
+genesis_config_block
+
+echo "params: {}"
 echo
 if [[ $openvpn == 'true' ]]; then
   echo "  vpn_client_routes:"
-  for route in ${vpn_client_routes[@]}; do
-    mask=$(cidr2mask $(echo $route | sed 's:.*/::'))
+  for route in "${vpn_client_routes[@]}"; do
+    mask=$(cidr2mask "$(echo $route | sed 's:.*/::')")
     echo "    - $(echo $route | sed 's:/.*::') $mask"
   done
 
   echo "  vpn_iptables_forward:"
-  for route in ${vpn_client_routes[@]}; do
+  for route in "${vpn_client_routes[@]}"; do
     # Currently 172.x is the hardcoded client network, if overridden these rules will also need to be updated
     echo "    - -s 172.31.255.0/24 -d $route -m conntrack --ctstate NEW -j ACCEPT -m comment --comment 'vpn -> lan'"
     echo "    - -s $route -d 172.31.255.0/24 -m conntrack --ctstate NEW -j ACCEPT -m comment --comment 'lan -> vpn'"
@@ -67,35 +81,39 @@ if [[ $openvpn == 'true' ]]; then
   echo "    - -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT"
   
   echo "  vpn_dns_servers:"
-  for dns in ${vpn_dns_servers[@]}; do
+  for dns in "${vpn_dns_servers[@]}"; do
     echo "    - $dns"
   done
   
   echo "  vpn_dns_search_domains:"
-  for domain in ${vpn_dns_search_domains[@]}; do
+  for domain in "${vpn_dns_search_domains[@]}"; do
     echo "    - $domain"
   done
   echo
 fi
-) >$GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml
+) > "$GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml"
 
 
 ## USERS
+addusers=
 prompt_for addusers boolean \
   'Would you like to add users to this jumpbox instance?'
 
 if [[ $addusers == 'true' ]]; then
-  echo "  users:" >>$GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml
+  echo "  users:" >> "$GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml"
 fi
 while [[ $addusers == 'true' ]]; do
+  user=
   prompt_for user line \
     'Account login name' \
     --validation '/^[a-z_][a-z0-9_-]{0,30}$/'
 
+  shell=
   prompt_for shell line \
-    "What shell will $user use? (/bin/bash, /bin/zsh, etc.)" \
+    "What shell will #C{$user} use? (/bin/bash, /bin/zsh, etc.)" \
     --default /bin/bash
 
+  pubkey=
   prompt_for pubkey line \
     "What is $user's public SSH key?" \
     --validation '/ssh-/'
@@ -107,17 +125,17 @@ while [[ $addusers == 'true' ]]; do
   echo "        # you can add more keys as needed..."
   echo "        - $pubkey"
   echo
-  ) >>$GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml
+  ) >> "$GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml"
 
   prompt_for addusers boolean \
     'Would you like to add another user to this jumpbox instance?'
 done
 
-mv $GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml \
-   $GENESIS_ROOT/$GENESIS_ENVIRONMENT.yml
-
-prompt_for edit boolean \
-	'Would you like to edit the environment file?'
-if [[ $edit = 'true' ]]; then
-	exec ${EDITOR:-vim} $GENESIS_ROOT/$GENESIS_ENVIRONMENT.yml
+if [[ "$(tail -n1 "$GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml")" != "params: {}" ]] ; then
+  sed -e 's/^params: {}$/params:/' -i '' "$GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml"
 fi
+
+mv "$GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml" \
+   "$GENESIS_ROOT/$GENESIS_ENVIRONMENT.yml"
+
+offer_environment_editor

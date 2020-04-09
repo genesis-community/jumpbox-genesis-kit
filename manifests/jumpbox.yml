@@ -10,6 +10,8 @@ params:
   env_vars: {}
   bashrc: ~
   users: (( param "Set up some users to log into this jumpbox" ))
+  ca_validity_period: 1y
+  cert_validity_period: 180d
 
 update:
   canaries: 1
