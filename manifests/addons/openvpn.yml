@@ -49,9 +49,9 @@ instance_groups:
 
 releases:
 - name: "openvpn"
-  version: "5.4.0"
-  url: "https://bosh.io/d/github.com/dpb587/openvpn-bosh-release?v=5.4.0"
-  sha1: "0bbc9dd8c9964e421145c841258e56dac6aaa1aa"
+  version: "5.5.0"
+  url: "https://bosh.io/d/github.com/dpb587/openvpn-bosh-release?v=5.5.0"
+  sha1: "5495d6c61412c18cc572cb5fa488aaa3064c62a1"
 
 - name: networking
   sha1: 9b5f9d27917c3754e492470ac6c9af80d62963db
