@@ -132,10 +132,12 @@ while [[ $addusers == 'true' ]]; do
 done
 
 if [[ "$(tail -n1 "$GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml")" != "params: {}" ]] ; then
-  sed -e 's/^params: {}$/params:/' -i '' "$GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml"
+  sed -e 's/^params: {}$/params:/' "$GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml" > \
+                                   "$GENESIS_ROOT/$GENESIS_ENVIRONMENT.yml"
+  rm "$GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml"
+else
+  mv "$GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml" \
+     "$GENESIS_ROOT/$GENESIS_ENVIRONMENT.yml"
 fi
-
-mv "$GENESIS_ROOT/.$GENESIS_ENVIRONMENT.yml" \
-   "$GENESIS_ROOT/$GENESIS_ENVIRONMENT.yml"
 
 offer_environment_editor
