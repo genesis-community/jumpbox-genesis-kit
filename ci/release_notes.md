@@ -11,7 +11,7 @@
 
 # Software Updates
 
-* jumpbox to [v4.7.2](https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases)
+* jumpbox to [v4.7.3](https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases)
 * toolbelt to [v3.5.0](https://github.com/cloudfoundry-community/toolbelt-boshrelease/releases/tag/v3.5.0)
 * openVPN to [v5.5.0](https://github.com/dpb587/openvpn-bosh-release/releases/tag/v5.5.0)
 
