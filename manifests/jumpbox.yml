@@ -31,18 +31,20 @@ instance_groups:
       - name: (( grab params.jumpbox_network || "jumpbox"))
         static_ips: (( static_ips 0 ))
     jobs:
-      - { release: jumpbox, name: jumpbox         }
+      - name: jumpbox
+        release: jumpbox
+        properties:
+          jumpbox:
+            hostname: (( grab params.hostname ))
+            users: (( grab params.users ))
+            env:
+              TMPDIR: /var/vcap/data/root_tmp
+              .: (( inject params.env_vars ))
+
       - { release: jumpbox, name: inventory       }
       - { release: toolbelt, name: toolbelt       }
       - { release: toolbelt, name: toolbelt-quick }
 
-properties:
-  jumpbox:
-    hostname: (( grab params.hostname ))
-    users: (( grab params.users ))
-    env:
-      TMPDIR: /var/vcap/data/root_tmp
-      .: (( inject params.env_vars ))
 
 stemcells:
   - alias: default

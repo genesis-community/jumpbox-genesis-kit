@@ -1,6 +1,6 @@
 ---
 name:     jumpbox
-version:  1.1.0
+version:  1.0.10
 authors:  [ James Hunt <jhunt@starkandwayne.com>,
             Dennis Bell <dbell@starkandwayne.com> ]
 docs:     https://github.com/genesis-community/jumpbox-genesis-kit
