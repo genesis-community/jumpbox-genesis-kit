@@ -10,11 +10,11 @@ if [[ $GENESIS_DEPLOY_RC == 0 ]]; then
       echo
       echo "For details about the deployment, run"
       echo
-  describe "  #G{genesis info $GENESIS_ENVIRONMENT}"
+  describe "  #G{$GENESIS_CALL info $GENESIS_ENVIRONMENT}"
       echo
       echo "To access the jumpbox over SSH:"
       echo
-  describe "  #G{genesis do $GENESIS_ENVIRONMENT -- ssh}"
+  describe "  #G{$GENESIS_CALL do $GENESIS_ENVIRONMENT -- ssh}"
       echo
       echo "or:"
       echo
