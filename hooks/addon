@@ -135,13 +135,20 @@ generate_ip_list() {
 }
 
 generate_vpn_config() {
-  email=${1:-}
-  if [[ -z ${email} ]]; then
-    echo >&2 "USAGE: genesis do <env> generate-vpn-config user@email.addr.ess"
+  if [[ "${#@}" == '0' ]] || [[ "${#@}" == '1' && "$1" == '-f' ]] ; then
+    bail "USAGE: genesis do <env> generate-vpn-config [-f] user@email.addr.ess"
     exit 1
   fi
+
+  regen=''
+  if [[ "$1" == "-f" ]] ; then
+    regen='1'
+    shift
+  fi
+  email="$1"
+
   generate_ip_list;
-  if ! safe --quiet check "${GENESIS_SECRETS_BASE}openvpn/certs/users/$email"; then
+  if ! safe --quiet check "${GENESIS_SECRETS_BASE}openvpn/certs/users/$email" || [[ -n $regen ]] ; then
     echo >&2 "Generating new openvpn client certificate for $email"
     issue "$email" --quiet
   fi
@@ -150,31 +157,33 @@ generate_vpn_config() {
     exit 1
   fi
 
-  echo "client"
-  echo "dev tun"
-  echo "proto $(lookup params.vpn_protocol  tcp)"
-  echo "remote $(lookup params.vpn_external_ip  "${ips[0]}") $(lookup params.vpn_external_port  443)"
-  echo "resolv-retry infinite"
-  echo "nobind"
-  echo "persist-key"
-  echo "persist-tun"
-  echo "mute-replay-warnings"
-  echo "remote-cert-tls server"
-  echo "verb 3"
-  echo "mute 20"
-  echo "tls-client"
-  echo "cipher AES-256-CBC"
-  echo "compress $(lookup params.vpn_compress lz4-v2)"
-  lookup params.vpn_extra_client_configs | jq -r '.[]'
-  echo "<ca>"
-  safe get "${GENESIS_SECRETS_BASE}openvpn/certs/ca:certificate"
-  echo "</ca>"
-  echo "<cert>"
-  safe get "${GENESIS_SECRETS_BASE}openvpn/certs/users/$email:certificate"
-  echo "</cert>"
-  echo "<key>"
-  safe get "${GENESIS_SECRETS_BASE}openvpn/certs/users/$email:key"
-  echo "</key>"
+  cat <<EOF
+client
+dev tun
+proto $(lookup params.vpn_protocol tcp)
+remote $(lookup params.vpn_external_ip "${ips[0]}") $(lookup params.vpn_external_port 443)
+resolv-retry infinite
+nobind
+persist-key
+persist-tun
+mute-replay-warnings
+remote-cert-tls server
+verb 3
+mute 20
+tls-client
+cipher AES-256-CBC
+compress $(lookup params.vpn_compress lz4-v2)"
+$(lookup params.vpn_extra_client_configs | jq -r '.[]')
+<ca>
+$(safe get "${GENESIS_SECRETS_BASE}openvpn/certs/ca:certificate")
+</ca>
+<cert>
+$(safe get "${GENESIS_SECRETS_BASE}openvpn/certs/users/$email:certificate")
+</cert>
+<key>
+$(safe get "${GENESIS_SECRETS_BASE}openvpn/certs/users/$email:key")
+</key>
+EOF
 }
 
 case $GENESIS_ADDON_SCRIPT in
