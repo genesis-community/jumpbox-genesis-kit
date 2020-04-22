@@ -64,7 +64,7 @@ echo
 genesis_config_block
 
 echo "params: {}"
-echo
+
 if [[ $openvpn == 'true' ]]; then
   echo "  vpn_client_routes:"
   for route in "${vpn_client_routes[@]}"; do

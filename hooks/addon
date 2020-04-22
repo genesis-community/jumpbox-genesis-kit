@@ -194,7 +194,7 @@ list)
 
 certs)
   n=0
-  for secret in $(safe paths "${GENESIS_SECRETS_BASE}openvpn/certs/users 2>/dev/null"); do
+  for secret in $(safe paths "${GENESIS_SECRETS_BASE}openvpn/certs/users" 2>/dev/null); do
     safe x509 show "$secret"; echo ; echo
     n=$(( n + 1 ))
   done
