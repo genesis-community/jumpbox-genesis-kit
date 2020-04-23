@@ -194,9 +194,10 @@ kit:
   name:    jumpbox
   version: 0.4.0
 
-params:
+genesis:
   env: acme-us-east-1-prod
 
+params:
   jumpbox_network:   access
   jumpbox_disk_pool: big-and-cheap
   jumpbox_vm_type:   medium

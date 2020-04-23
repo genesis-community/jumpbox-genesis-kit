@@ -2,10 +2,11 @@
 kit:
   features: []
 
-params:
-  env:   ci-baseline
-  bosh:  genesis-ci
+genesis:
+  env:      ci-baseline
+  bosh_env: genesis-ci
 
+params:
   availability_zones: [z1]
 
   users:
