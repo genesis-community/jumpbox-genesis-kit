@@ -48,4 +48,9 @@ for want in $GENESIS_REQUESTED_FEATURES; do
   esac
 done
 
+users_file="$(lookup 'params.users_file' '')"
+if [[ -n "$users_file" ]] ; then
+  merge+=( manifests/users.yml )
+fi
+
 echo "${merge[@]}"

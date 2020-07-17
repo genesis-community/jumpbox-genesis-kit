@@ -44,6 +44,13 @@ related components.
   authenticated via SSH keys; you cannot set up password-based
   user authentication.
 
+  You can also specify the array of users in a separate YAML file,
+  and specify the `users_file` parameter to specify the name of that
+  file, relative to the directory containing the environment file.
+  These two methods can be used together, but if doing so, ensure the
+  `users` parameter has as its first entry a `- ((append))` array
+  operator.
+
 ## Deployment Parameters
 
 - `jumpbox_disk_pool` - The persistent disk pool that the jumpbox

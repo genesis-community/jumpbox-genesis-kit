@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Cloud Config checks
-if [[ -n "$GENESIS_CLOUD_CONFIG" ]] ; then
+status=ok
+if [[ -n "${GENESIS_CLOUD_CONFIG:-}" ]] ; then
   cloud_config_needs vm_type    "$(lookup params.jumpbox_vm_type   jumpbox)"
   cloud_config_needs disk_type  "$(lookup params.jumpbox_disk_pool jumpbox)"
   cloud_config_needs network    "$(lookup params.jumpbox_network   jumpbox)"
@@ -9,6 +10,20 @@ if [[ -n "$GENESIS_CLOUD_CONFIG" ]] ; then
     describe "  cloud-config [#G{OK}]"
   else
     describe "  cloud-config [#R{FAILED}]"
-    exit 1
+    status=fail
   fi
+fi
+
+users_file="$(lookup 'params.users_file' '')"
+if [[ -n "$users_file" ]] ; then
+  if ! [[ -f "$GENESIS_ROOT/$users_file" ]] ; then
+    describe "" "Missing users file '$users_file'"
+    status=fail
+  fi
+fi
+
+if [[ "$status" == "ok" ]] ; then
+  exit 0
+else
+  exit 1
 fi

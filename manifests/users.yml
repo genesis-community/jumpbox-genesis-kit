@@ -1,0 +1,5 @@
+meta:
+  users_path: (( concat $GENESIS_ROOT "/" params.users_file ))
+
+params:
+  users: (( load meta.users_path ))
