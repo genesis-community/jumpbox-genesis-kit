@@ -7,5 +7,6 @@
 
 # Software Upgrades
 
-* This version uses jumpbox-boshrelease v4.7.8, which bumps genesis from
-  2.7.10 to 2.7.11
+* uses jumpbox-boshrelease v4.7.8, which bumps genesis to 2.7.11
+* uses toolbelt-boshrelease v3.5.1, which bumps spruce to 1.26.0 as needed by
+  genesis 2.7.11

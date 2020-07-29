@@ -57,6 +57,6 @@ releases:
   url:     (( concat "https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/download/v" releases.jumpbox.version "/jumpbox-" releases.jumpbox.version ".tgz" ))
   sha1:    51284aea471b33b65577e441a33c98f39b09b144
 - name:    toolbelt
-  version: 3.5.0
+  version: 3.5.1
   url:     (( concat "https://github.com/cloudfoundry-community/toolbelt-boshrelease/releases/download/v" releases.toolbelt.version "/toolbelt-" releases.toolbelt.version ".tgz" ))
-  sha1:    08b493f205680323a005ab202e0add186137cec6
+  sha1:    347c735315678cbb1e21c2412601dac24af82501
