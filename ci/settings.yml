@@ -2,7 +2,7 @@
 meta:
   kit:     jumpbox
   release: Jumpbox Genesis Kit
-  target:  genesis@pipes
+  target:  pipes@genesis
   url:     https://pipes.starkandwayne.com
   exposed: yes
 

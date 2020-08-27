@@ -1,0 +1,104 @@
+jobs:
+- name: jumpbox-release
+  public: true
+  serial: true
+  serial_groups: [bosh-release]
+  plan:
+    - do:
+      - in_parallel:
+        - { get: git, trigger: false, passed: [spec-tests] }
+        - { get: git-ci, trigger: false }
+        - get: bosh-release-jumpbox
+          trigger: true
+          params:
+            tarball: false
+      - task: update-bosh-release
+        file: git-ci/ci/tasks/update-bosh-release/task.yml
+        input_mapping:
+          bosh-release: bosh-release-jumpbox
+        params:
+          OPS_FILE_PATH: manifests/releases/jumpbox.yml
+          RELEASE_NAME: jumpbox
+          BRANCH: (( grab meta.github.branch ))
+      - put: git
+        params:
+          merge: true
+          repository: pushme
+
+- name: networking-release
+  public: true
+  serial: true
+  serial_groups: [bosh-release]
+  plan:
+    - do:
+      - in_parallel:
+        - { get: git, trigger: false, passed: [spec-tests] }
+        - { get: git-ci, trigger: false }
+        - get: bosh-release-networking
+          trigger: true
+          params:
+            tarball: false
+      - task: update-bosh-release
+        file: git-ci/ci/tasks/update-bosh-release/task.yml
+        input_mapping:
+          bosh-release: bosh-release-networking
+        params:
+          OPS_FILE_PATH: manifests/releases/networking.yml
+          RELEASE_NAME: networking
+          BRANCH: (( grab meta.github.branch ))
+      - put: git
+        params:
+          merge: true
+          repository: pushme
+
+- name: openvpn-release
+  public: true
+  serial: true
+  serial_groups: [bosh-release]
+  plan:
+    - do:
+      - in_parallel:
+        - { get: git, trigger: false, passed: [spec-tests] }
+        - { get: git-ci, trigger: false }
+        - get: bosh-release-openvpn
+          trigger: true
+          params:
+            tarball: false
+      - task: update-bosh-release
+        file: git-ci/ci/tasks/update-bosh-release/task.yml
+        input_mapping:
+          bosh-release: bosh-release-openvpn
+        params:
+          OPS_FILE_PATH: manifests/releases/openvpn.yml
+          RELEASE_NAME: openvpn
+          BRANCH: (( grab meta.github.branch ))
+      - put: git
+        params:
+          merge: true
+          repository: pushme
+
+- name: toolbelt-release
+  public: true
+  serial: true
+  serial_groups: [bosh-release]
+  plan:
+    - do:
+      - in_parallel:
+        - { get: git, trigger: false, passed: [spec-tests] }
+        - { get: git-ci, trigger: false }
+        - get: bosh-release-toolbelt
+          trigger: true
+          params:
+            tarball: false
+      - task: update-bosh-release
+        file: git-ci/ci/tasks/update-bosh-release/task.yml
+        input_mapping:
+          bosh-release: bosh-release-toolbelt
+        params:
+          OPS_FILE_PATH: manifests/releases/toolbelt.yml
+          RELEASE_NAME: toolbelt
+          BRANCH: (( grab meta.github.branch ))
+      - put: git
+        params:
+          merge: true
+          repository: pushme
