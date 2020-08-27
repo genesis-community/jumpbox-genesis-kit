@@ -1,0 +1,98 @@
+instance_groups:
+- azs:
+  - z1
+  instances: 1
+  jobs:
+  - name: jumpbox
+    properties:
+      jumpbox:
+        env:
+          TMPDIR: /var/vcap/data/root_tmp
+        hostname: all-features-all-params-jumpbox
+        users:
+        - name: test-user
+          shell: /bin/bash
+          ssh_keys:
+          - ssh-rsa 1234567890qwertyuiopasdfghjklzxcvbnm
+    release: jumpbox
+  - name: inventory
+    release: jumpbox
+  - name: toolbelt
+    release: toolbelt
+  - name: toolbelt-quick
+    release: toolbelt
+  - name: openvpn
+    properties:
+      cipher: AES-256-CBC
+      compress: lz4-v2
+      dh_pem: <!{meta.vault}/openvpn/dh_params:dhparam-pem!>
+      extra_configs:
+      - fast-io
+      - sndbuf 0
+      - rcvbuf 0
+      port: 443
+      protocol: udp
+      push_dns:
+      - 1.2.3.4
+      push_dns_search_domains:
+      - test.dns.com
+      push_routes:
+      - 10.1.0.0 255.255.0.0
+      server: 172.31.255.0 255.255.255.0
+      tls_crl: <!{meta.vault}/openvpn/certs/ca:crl!>
+      tls_server:
+        ca: <!{meta.vault}/openvpn/certs/ca:certificate!>
+        certificate: <!{meta.vault}/openvpn/certs/server:certificate!>
+        private_key: <!{meta.vault}/openvpn/certs/server:key!>
+      tls_version_min: "1.2"
+    release: openvpn
+  - name: iptables
+    properties:
+      iptables:
+        filter:
+          FORWARD:
+          - -s 30.31.255.0/24 -d 10.0.0.0/8 -m conntrack --ctstate NEW -j ACCEPT -m comment --comment 'vpn -> lan'
+        nat:
+          POSTROUTING:
+          - -s 172.31.255.0/255.255.255.0 -d 0/0 -j MASQUERADE
+    release: networking
+  name: jumpbox
+  networks:
+  - default:
+    - dns
+    - gateway
+    name: jumpbox
+    static_ips:
+    - 10.99.0.16
+  - name: test-network
+  persistent_disk_type: jumpbox
+  stemcell: default
+  vm_type: jumpbox
+name: all-features-all-params-jumpbox
+releases:
+- name: jumpbox
+  sha1: 1ad3e7f7d6a7d5fc7b677b71df72c072c21f9f08
+  url: https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/download/v4.8.1/jumpbox-4.8.1.tgz
+  version: 4.8.1
+- name: toolbelt
+  sha1: 347c735315678cbb1e21c2412601dac24af82501
+  url: https://github.com/cloudfoundry-community/toolbelt-boshrelease/releases/download/v3.5.1/toolbelt-3.5.1.tgz
+  version: 3.5.1
+- name: openvpn
+  sha1: 5495d6c61412c18cc572cb5fa488aaa3064c62a1
+  url: https://bosh.io/d/github.com/dpb587/openvpn-bosh-release?v=5.5.0
+  version: 5.5.0
+- name: networking
+  sha1: 9b5f9d27917c3754e492470ac6c9af80d62963db
+  url: http://bosh.io/d/github.com/cloudfoundry/networking-release?v=9
+  version: 9
+stemcells:
+- alias: default
+  os: ubuntu-xenial
+  version: latest
+update:
+  canaries: 1
+  canary_watch_time: 1000-60000
+  max_in_flight: 4
+  serial: false
+  update_watch_time: 1000-60000

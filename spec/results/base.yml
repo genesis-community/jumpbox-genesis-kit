@@ -1,0 +1,51 @@
+instance_groups:
+- azs:
+  - z1
+  instances: 1
+  jobs:
+  - name: jumpbox
+    properties:
+      jumpbox:
+        env:
+          TMPDIR: /var/vcap/data/root_tmp
+        hostname: base-jumpbox
+        users:
+        - name: test-user
+          shell: /bin/bash
+          ssh_keys:
+          - ssh-rsa 1234567890qwertyuiopasdfghjklzxcvbnm
+    release: jumpbox
+  - name: inventory
+    release: jumpbox
+  - name: toolbelt
+    release: toolbelt
+  - name: toolbelt-quick
+    release: toolbelt
+  name: jumpbox
+  networks:
+  - name: jumpbox
+    static_ips:
+    - 10.99.0.16
+  persistent_disk_type: jumpbox
+  stemcell: default
+  vm_type: jumpbox
+name: base-jumpbox
+releases:
+- name: jumpbox
+  sha1: 1ad3e7f7d6a7d5fc7b677b71df72c072c21f9f08
+  url: https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/download/v4.8.1/jumpbox-4.8.1.tgz
+  version: 4.8.1
+- name: toolbelt
+  sha1: 347c735315678cbb1e21c2412601dac24af82501
+  url: https://github.com/cloudfoundry-community/toolbelt-boshrelease/releases/download/v3.5.1/toolbelt-3.5.1.tgz
+  version: 3.5.1
+stemcells:
+- alias: default
+  os: ubuntu-xenial
+  version: latest
+update:
+  canaries: 1
+  canary_watch_time: 1000-60000
+  max_in_flight: 4
+  serial: false
+  update_watch_time: 1000-60000

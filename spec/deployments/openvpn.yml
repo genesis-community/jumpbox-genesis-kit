@@ -1,0 +1,23 @@
+---
+kit:
+  features:
+  - openvpn
+
+genesis:
+  env:      openvpn
+
+params:
+  vpn_client_routes:
+    - 10.1.0.0 255.255.0.0
+  vpn_iptables_forward:
+    - -s 30.31.255.0/24 -d 10.0.0.0/8 -m conntrack --ctstate NEW -j ACCEPT -m comment --comment 'vpn -> lan'    
+  vpn_dns_servers:
+    - 1.2.3.4
+  vpn_dns_search_domains:
+    - test.dns.com
+    
+  users:
+    - name: test-user
+      shell: /bin/bash
+      ssh_keys:
+        - ssh-rsa 1234567890qwertyuiopasdfghjklzxcvbnm  

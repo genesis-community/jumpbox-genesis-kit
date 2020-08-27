@@ -1,0 +1,16 @@
+---
+kit:
+  features:
+  - bastion
+
+genesis:
+  env:      bastion
+
+params:
+  inside_network: test-network
+
+  users:
+    - name: test-user
+      shell: /bin/bash
+      ssh_keys:
+        - ssh-rsa 1234567890qwertyuiopasdfghjklzxcvbnm  

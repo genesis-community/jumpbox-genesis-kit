@@ -1,0 +1,12 @@
+secret/all/features/all/params/jumpbox/openvpn/certs/ca:
+  certificate: <!{meta.vault}/openvpn/certs/ca:certificate!>
+  combined: <!{meta.vault}/openvpn/certs/ca:combined!>
+  crl: <!{meta.vault}/openvpn/certs/ca:crl!>
+  key: <!{meta.vault}/openvpn/certs/ca:key!>
+  serial: <!{meta.vault}/openvpn/certs/ca:serial!>
+secret/all/features/all/params/jumpbox/openvpn/certs/server:
+  certificate: <!{meta.vault}/openvpn/certs/server:certificate!>
+  combined: <!{meta.vault}/openvpn/certs/server:combined!>
+  key: <!{meta.vault}/openvpn/certs/server:key!>
+secret/all/features/all/params/jumpbox/openvpn/dh_params:
+  dhparam-pem: <!{meta.vault}/openvpn/dh_params:dhparam-pem!>
