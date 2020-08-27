@@ -15,12 +15,16 @@ declare -a merge
 validate_features openvpn bastion \
                   proxy azure shield # defunct
 
-merge=( manifests/jumpbox.yml )
+merge=( manifests/jumpbox.yml
+        manifests/releases/jumpbox.yml
+        manifests/releases/toolbelt.yml )
 
 for want in $GENESIS_REQUESTED_FEATURES; do
   case $want in
   openvpn)
-    merge+=( "manifests/addons/$want.yml" )
+    merge+=( "manifests/addons/$want.yml"
+             manifests/releases/openvpn.yml
+             manifests/releases/networking.yml )
     ;;
 
   bastion)

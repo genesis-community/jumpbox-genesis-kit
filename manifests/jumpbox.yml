@@ -51,12 +51,3 @@ stemcells:
     os:      (( grab params.stemcell_os      || "ubuntu-xenial" ))
     version: (( grab params.stemcell_version || "latest" ))
 
-releases:
-- name:    jumpbox
-  version: 4.8.1
-  url:     (( concat "https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/download/v" releases.jumpbox.version "/jumpbox-" releases.jumpbox.version ".tgz" ))
-  sha1:    1ad3e7f7d6a7d5fc7b677b71df72c072c21f9f08
-- name:    toolbelt
-  version: 3.5.1
-  url:     (( concat "https://github.com/cloudfoundry-community/toolbelt-boshrelease/releases/download/v" releases.toolbelt.version "/toolbelt-" releases.toolbelt.version ".tgz" ))
-  sha1:    347c735315678cbb1e21c2412601dac24af82501
