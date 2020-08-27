@@ -28,7 +28,7 @@ for want in $GENESIS_REQUESTED_FEATURES; do
     ;;
 
   bastion)
-    merge+=( manifests/bastion.yml )
+    merge+=( "manifests/$want.yml" )
     ;;
 
   shield)
