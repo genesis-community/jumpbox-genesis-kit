@@ -20,7 +20,7 @@ params:
   GIT_EMAIL:            ci@starkandwayne.com
   VAULT_URI:            ((vault.url))
   VAULT_TOKEN:          ((vault.token))
-  KIT_SHORTNAME:        concourse
+  KIT_SHORTNAME:        jumpbox
   BOSH_ENVIRONMENT:     ((bosh.uri))
   BOSH_CA_CERT:         ((bosh.ca))
   BOSH_CLIENT:          ((bosh.username))
