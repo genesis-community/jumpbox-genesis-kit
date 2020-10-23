@@ -2,6 +2,6 @@
   path: /releases?/name=jumpbox?
   value:
     name: jumpbox
-    version: 4.8.7
-    url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.8.7
-    sha1: a1ed6c57e8808281877e06ae01f70469ec6f63cc
+    version: 4.8.8
+    url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.8.8
+    sha1: 5063037b23cf1593a02a42c5ce927befbb270455
