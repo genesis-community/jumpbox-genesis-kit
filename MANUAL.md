@@ -76,7 +76,7 @@ rather they use entities already existing in your Cloud Foundry:
 
 ```
 params:
-  jumbpox_network:   jumpbox
+  jumpbox_network:   jumpbox
   jumpbox_disk_pool: jumpbox # should be at least 50GB
   jumpbox_vm_type:   jumpbox # VMs should have at least 1 CPU, and 2GB of memory
 ```
