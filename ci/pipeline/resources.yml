@@ -12,7 +12,7 @@ resources:
       uri:         (( grab meta.github.uri ))
       branch:      (( grab meta.github.branch ))
       private_key: (( grab meta.github.private_key ))
-      ignore_paths: [ci/*]
+      ignore_paths: ["ci/*[^md]"]
 
   - name: git-ci
     type: git
@@ -64,7 +64,7 @@ resources:
     type: bosh-io-release
     check_every: 24h
     source:
-      repository: cloudfoundry-community/jumpbox-boshrelease  
+      repository: cloudfoundry-community/jumpbox-boshrelease
 
   - name: bosh-release-networking
     type: bosh-io-release
