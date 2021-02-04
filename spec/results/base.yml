@@ -32,9 +32,9 @@ instance_groups:
 name: base-jumpbox
 releases:
 - name: jumpbox
-  sha1: 4ea9a6abb18f7334d9477f77968861487f56fcba
-  url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.8.13
-  version: 4.8.13
+  sha1: ddf17c2a6448a31438b9c827df8e3c2ce02cb4b7
+  url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.8.14
+  version: 4.8.14
 - name: toolbelt
   sha1: a36d826fd83ad4c35d767e244eca7a863df02720
   url: https://bosh.io/d/github.com/cloudfoundry-community/toolbelt-boshrelease?v=3.5.1
