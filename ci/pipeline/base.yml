@@ -70,11 +70,11 @@ groups:
   - name: (( grab meta.pipeline ))
     jobs:
     - spec-tests
+    - spec-check
     - testflight
     - pre
     - rc
     - shipit
-
   - name: upstream
     jobs:
     - jumpbox-release
