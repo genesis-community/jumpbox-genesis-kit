@@ -74,11 +74,15 @@ groups:
     - pre
     - rc
     - shipit
-    - major
-    - minor
+
   - name: upstream
     jobs:
     - jumpbox-release
     - networking-release
     - openvpn-release
     - toolbelt-release
+  - name: versions
+    jobs:
+    - major
+    - minor
+    - patch

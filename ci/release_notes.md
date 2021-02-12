@@ -1,5 +1,3 @@
 ## Bug fixes:
 
 ## Small improvments:
-
-
