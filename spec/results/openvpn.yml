@@ -6,6 +6,7 @@ instance_groups:
   - name: jumpbox
     properties:
       jumpbox:
+        bashrc: null
         env:
           TMPDIR: /var/vcap/data/root_tmp
         hostname: openvpn-jumpbox

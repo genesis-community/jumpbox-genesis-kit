@@ -6,6 +6,9 @@ instance_groups:
   - name: jumpbox
     properties:
       jumpbox:
+        bashrc: |
+          !#/bin/bash
+          echo "test"
         env:
           TMPDIR: /var/vcap/data/root_tmp
         hostname: all-features-all-params-jumpbox
