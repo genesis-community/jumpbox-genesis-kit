@@ -37,6 +37,8 @@ instance_groups:
           jumpbox:
             hostname: (( grab params.hostname ))
             users: (( grab params.users ))
+            banner: (( grab params.banner ))
+            hosts: (( grab params.hosts ))
             bashrc: (( grab params.bashrc ))
             env:
               TMPDIR: /var/vcap/data/root_tmp

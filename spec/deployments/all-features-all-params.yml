@@ -37,7 +37,9 @@ params:
       shell: /bin/bash
       ssh_keys:
         - ssh-rsa 1234567890qwertyuiopasdfghjklzxcvbnm
-
+  banner: test-banner
+  hosts:
+  - 1.2.3.4
   bashrc: |
     !#/bin/bash
     echo "test"
