@@ -6,9 +6,12 @@ instance_groups:
   - name: jumpbox
     properties:
       jumpbox:
+        banner: null
+        bashrc: null
         env:
           TMPDIR: /var/vcap/data/root_tmp
         hostname: base-jumpbox
+        hosts: []
         users:
         - name: test-user
           shell: /bin/bash

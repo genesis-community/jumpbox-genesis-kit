@@ -9,12 +9,12 @@ genesis:
 
 params:
   availability_zones: [z1]
-  
+
   inside_network: test-network
   vpn_client_routes:
     - 10.1.0.0 255.255.0.0
   vpn_iptables_forward:
-    - -s 30.31.255.0/24 -d 10.0.0.0/8 -m conntrack --ctstate NEW -j ACCEPT -m comment --comment 'vpn -> lan'    
+    - -s 30.31.255.0/24 -d 10.0.0.0/8 -m conntrack --ctstate NEW -j ACCEPT -m comment --comment 'vpn -> lan'
   vpn_dns_servers:
     - 1.2.3.4
   vpn_dns_search_domains:
@@ -30,11 +30,16 @@ params:
   vpn_extra_client_configs:
     - fast-io
     - sndbuf 393216
-    - rcvbuf 393216 
-
+    - rcvbuf 393216
 
   users:
     - name: test-user
       shell: /bin/bash
       ssh_keys:
         - ssh-rsa 1234567890qwertyuiopasdfghjklzxcvbnm
+  banner: test-banner
+  hosts:
+  - 1.2.3.4
+  bashrc: |
+    !#/bin/bash
+    echo "test"
