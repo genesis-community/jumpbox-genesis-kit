@@ -1,3 +1,5 @@
+exodus:
+  features: openvpn,bastion
 instance_groups:
 - azs:
   - z1

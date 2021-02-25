@@ -1,3 +1,5 @@
+exodus:
+  features: ""
 instance_groups:
 - azs:
   - z1
