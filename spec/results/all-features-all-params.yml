@@ -59,7 +59,8 @@ instance_groups:
       iptables:
         filter:
           FORWARD:
-          - -s 30.31.255.0/24 -d 10.0.0.0/8 -m conntrack --ctstate NEW -j ACCEPT -m comment --comment 'vpn -> lan'
+          - -s 30.31.255.0/24 -d 10.0.0.0/8 -m conntrack --ctstate NEW -j ACCEPT -m
+            comment --comment 'vpn -> lan'
         nat:
           POSTROUTING:
           - -s 172.31.255.0/255.255.255.0 -d 0/0 -j MASQUERADE
@@ -79,9 +80,9 @@ instance_groups:
 name: all-features-all-params-jumpbox
 releases:
 - name: jumpbox
-  sha1: 1d24bce90b3aacdfcc79190b6a9ea906ecbeb8fa
-  url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.8.15
-  version: 4.8.15
+  sha1: 8d506da7c6a1a7799c2e7fae662902667b459670
+  url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.8.16
+  version: 4.8.16
 - name: toolbelt
   sha1: a36d826fd83ad4c35d767e244eca7a863df02720
   url: https://bosh.io/d/github.com/cloudfoundry-community/toolbelt-boshrelease?v=3.5.1
