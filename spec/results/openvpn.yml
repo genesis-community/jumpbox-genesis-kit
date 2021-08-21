@@ -70,9 +70,9 @@ instance_groups:
 name: openvpn-jumpbox
 releases:
 - name: jumpbox
-  sha1: 70bb318c73aa8698d414af67177682166fc148f7
-  url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.8.17
-  version: 4.8.17
+  sha1: 2b6c9273fcf4d736dadcbb837343e92784f63c6d
+  url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.9.0
+  version: 4.9.0
 - name: toolbelt
   sha1: a36d826fd83ad4c35d767e244eca7a863df02720
   url: https://bosh.io/d/github.com/cloudfoundry-community/toolbelt-boshrelease?v=3.5.1
