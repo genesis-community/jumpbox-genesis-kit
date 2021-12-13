@@ -69,10 +69,10 @@ instance_groups:
   vm_type: jumpbox
 name: openvpn-jumpbox
 releases:
-- name: jumpbox
-  sha1: 2b6c9273fcf4d736dadcbb837343e92784f63c6d
-  url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.9.0
-  version: 4.9.0
+- name:    jumpbox
+  version: 4.9.1
+  url:     https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/download/v4.9.1/jumpbox-4.9.1.tgz
+  sha1:    7f989d74cf0cbb5192541a2e95c33acc6b999966
 - name: toolbelt
   sha1: a36d826fd83ad4c35d767e244eca7a863df02720
   url: https://bosh.io/d/github.com/cloudfoundry-community/toolbelt-boshrelease?v=3.5.1
@@ -87,7 +87,7 @@ releases:
   version: 9
 stemcells:
 - alias: default
-  os: ubuntu-xenial
+  os: ubuntu-bionic
   version: latest
 update:
   canaries: 1

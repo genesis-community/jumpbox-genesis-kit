@@ -51,6 +51,6 @@ instance_groups:
 
 stemcells:
   - alias: default
-    os:      (( grab params.stemcell_os      || "ubuntu-xenial" ))
+    os:      (( grab params.stemcell_os      || "ubuntu-bionic" ))
     version: (( grab params.stemcell_version || "latest" ))
 
