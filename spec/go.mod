@@ -1,6 +1,6 @@
 module github.com/genesis-community/concourse-genesis-kit/spec
 
-go 1.14
+go 1.16
 
 require (
 	github.com/genesis-community/testkit v0.0.0-20210202143224-371569997dc4
