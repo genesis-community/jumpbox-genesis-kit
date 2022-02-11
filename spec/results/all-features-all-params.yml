@@ -1,5 +1,8 @@
 exodus:
   features: openvpn,bastion
+  bosh: all-features-all-params
+  is_director: false
+  use_create_env: false
 instance_groups:
 - azs:
   - z1
