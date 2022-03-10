@@ -2,6 +2,6 @@
   path: /releases?/name=toolbelt?
   value:
     name: toolbelt
-    version: 3.5.1
-    url: https://bosh.io/d/github.com/cloudfoundry-community/toolbelt-boshrelease?v=3.5.1
-    sha1: a36d826fd83ad4c35d767e244eca7a863df02720
+    version: 3.7.0
+    url: https://bosh.io/d/github.com/cloudfoundry-community/toolbelt-boshrelease?v=3.7.0
+    sha1: 377b390b7f5d358a2dae463109350250a769eb3f
