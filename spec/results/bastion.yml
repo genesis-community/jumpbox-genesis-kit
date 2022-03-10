@@ -44,13 +44,13 @@ instance_groups:
 name: bastion-jumpbox
 releases:
 - name:    jumpbox
-  version: 4.9.1
-  url:     https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/download/v4.9.1/jumpbox-4.9.1.tgz
-  sha1:    7f989d74cf0cbb5192541a2e95c33acc6b999966
+  version: 4.9.2
+  url:     https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.9.2
+  sha1:    fb85f9cde5fd683b16970b2839ddd21c61dbcf13
 - name: toolbelt
-  sha1: a36d826fd83ad4c35d767e244eca7a863df02720
-  url: https://bosh.io/d/github.com/cloudfoundry-community/toolbelt-boshrelease?v=3.5.1
-  version: 3.5.1
+  sha1: 377b390b7f5d358a2dae463109350250a769eb3f
+  url: https://bosh.io/d/github.com/cloudfoundry-community/toolbelt-boshrelease?v=3.7.0
+  version: 3.7.0
 stemcells:
 - alias: default
   os: ubuntu-bionic
