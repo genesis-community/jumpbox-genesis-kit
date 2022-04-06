@@ -9,52 +9,84 @@ if ! [[ "$genesis_version" =~ -dev$ ]] && ! new_enough "$genesis_version" "$min_
   exit 1
 fi
 set -e
-
+ 
 declare -a merge
-
-validate_features openvpn bastion \
-                  proxy azure shield # defunct
-
+ 
+# Check for ops features
+declare -a features
+features=()
+iaas=
+db=
+abort=
+warn=
+for want in $GENESIS_REQUESTED_FEATURES; do
+  case "$want" in
+    (openvpn|bastion|proxy|azure|shield)
+      true # Defunct - will emit warning message later.
+    ;;
+    (*)
+      if [[ -f "$GENESIS_ROOT/ops/$want.yml" ]] ; then
+        features+=( "$want" )
+      else
+        abort=1
+        describe >&2 \
+          "#R{[ERROR]} The #c{$want} feature is invalid. See the manual for list of valid features."
+      fi
+      ;;
+  esac
+done
+ 
 merge=( manifests/jumpbox.yml
         manifests/releases/jumpbox.yml
         manifests/releases/toolbelt.yml )
-
+ 
 for want in $GENESIS_REQUESTED_FEATURES; do
   case $want in
-  openvpn)
+  (openvpn)
     merge+=( "manifests/addons/$want.yml"
              manifests/releases/openvpn.yml
              manifests/releases/networking.yml )
     ;;
-
-  bastion)
+ 
+  (bastion)
     merge+=( "manifests/$want.yml" )
     ;;
-
-  shield)
+ 
+  (shield)
     echo >&2 "The Jumpbox Genesis Kit no longer supplies a 'shield' feature flag."
     echo >&2 "If you wish to back up this jumpbox, please switch to using BOSH"
     echo >&2 "runtime configurations to add the shield-agent to the deployment."
     exit 1
     ;;
-
-  azure)
+ 
+  (azure)
     echo >&2 "The Jumpbox Genesis Kit no longer supplies a 'azure' feature flag."
     echo >&2 "This is because the 'azure' feature only impacted availability zones"
     echo >&2 "and sets, which have no impact on a single-instance deployment."
     ;;
-
-
-  proxy)
+ 
+ 
+  (proxy)
     echo >&2 "You no longer need to explicitly specify the 'proxy' feature."
     echo >&2 "If you remove it, everything will still work as expected."
     ;;
+ 
+  (*)
+    if [[ -f "$GENESIS_ROOT/ops/$want.yml" ]] ; then
+      merge+=( "$GENESIS_ROOT/ops/$want.yml" )
+    else
+      abort=1
+      describe >&2 \
+        "#R{[ERROR]} The #c{$want} feature is invalid. See the manual for list of valid features."
+    fi
+    ;;
+ 
   esac
 done
-
+ 
 users_file="$(lookup 'params.users_file' '')"
 if [[ -n "$users_file" ]] ; then
   merge+=( manifests/users.yml )
 fi
-
+ 
 echo "${merge[@]}"
