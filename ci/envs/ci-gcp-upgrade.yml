@@ -1,8 +1,7 @@
 ---
-kit:
-  features:
-    - ((append))
-    - small-footprint
+#kit:
+#  features:
+#    - ((append))
 
 genesis:
   env:   ci-gcp-upgrade
