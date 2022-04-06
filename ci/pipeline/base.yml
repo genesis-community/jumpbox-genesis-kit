@@ -82,7 +82,6 @@ groups:
     - ship-prerelease
     - deploy
     - upgrade
-    - acceptance-tests
     - prepare
     - ship-release
 
