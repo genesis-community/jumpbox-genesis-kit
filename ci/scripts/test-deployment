@@ -16,6 +16,7 @@ header() {
   echo
 }
 
+set -x
 has_feature() {
 	genesis lookup "$1" kit.features 2>/dev/null | jq -e --arg feature "$2" '. | index($feature)' >/dev/null
 }
@@ -93,6 +94,7 @@ if [[ -z "$vault_path" ]] ; then
   echo >&2 "Failed to determine vault path.  Cannot continue!"
   exit 2
 fi
+set +x
 
 if [[ "$SKIP_REPLACE_SECRETS" == "false" ]] ; then
 	# Remove safe values
