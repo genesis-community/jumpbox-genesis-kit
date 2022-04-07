@@ -1,9 +1,4 @@
 ---
-kit:
-  features:
-    - ((append))
-    - google
-
 genesis:
   bosh_env:  gcp-uswest2-genesis-ci
 
