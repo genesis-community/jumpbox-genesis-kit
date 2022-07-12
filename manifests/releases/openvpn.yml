@@ -2,6 +2,6 @@
   path: /releases?/name=openvpn?
   value:
     name: openvpn
-    version: 5.8.0
-    url: https://bosh.io/d/github.com/dpb587/openvpn-bosh-release?v=5.8.0
-    sha1: fc3c30a604959d28f95ab0a451926b77f802208d
+    version: 5.8.1
+    url: https://github.com/starkandwayne/openvpn-bosh-release?v=5.8.1
+    sha1: b74b462b7c218e94f5539d52cdec9179af96e89e
