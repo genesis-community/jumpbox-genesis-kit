@@ -44,9 +44,9 @@ instance_groups:
 name: bastion-jumpbox
 releases:
 - name: jumpbox
-  sha1: fb85f9cde5fd683b16970b2839ddd21c61dbcf13
-  url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.9.2
-  version: 4.9.2
+  sha1: 618f86900025effcd4909707387570fbfcf1e86a
+  url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.11.0
+  version: 4.11.0
 - name: toolbelt
   sha1: 377b390b7f5d358a2dae463109350250a769eb3f
   url: https://bosh.io/d/github.com/cloudfoundry-community/toolbelt-boshrelease?v=3.7.0
