@@ -7,7 +7,7 @@ meta:
   iaas:            vsphere
   exposed:         false
   version_file:    version
-  initial_version: 1.3.4
+  initial_version: 1.3.4-rc.2
 
   bosh:
     uri:      ((bosh.uri))
@@ -47,7 +47,7 @@ meta:
   upstream:
     bosh_releases:
     - name:       jumpbox
-      type:       bosh-io-release
+      type:       github-release
       repository: cloudfoundry-community/jumpbox-boshrelease
       path:       manifests/releases/jumpbox.yml
 
