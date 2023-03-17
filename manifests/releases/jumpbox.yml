@@ -1,5 +1,5 @@
 releases:
 - name:    jumpbox
-  version: 4.11.0
-  url:     https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.11.0
-  sha1:    618f86900025effcd4909707387570fbfcf1e86a
+  version: 4.11.1
+  url:     https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.11.1
+  sha1:    02783618aa313b9b1c2bafd402ffc019ab75cfda
