@@ -2,12 +2,12 @@
 meta:
   kit:             jumpbox
   release:         Jumpbox Genesis Kit
-  target:          cloudpipes/genesis
-  url:             https://cloudpipes.starkandwayne.com
-  iaas:            gcp
+  target:          pipes/genesis
+  url:             https://pipes.scalecf.net
+  iaas:            vsphere
   exposed:         false
   version_file:    version
-  initial_version: 1.3.3
+  initial_version: 1.3.4
 
   bosh:
     uri:      ((bosh.uri))
@@ -25,8 +25,11 @@ meta:
     token:     ((vault.token))
 
   aws:
-    access_key: ((aws.access_key_id))
-    secret_key: ((aws.secret_access_key))
+    endpoint:    ((aws.endpoint))
+    access_key:  ((aws.access_key_id))
+    secret_key:  ((aws.secret_access_key))
+    insecure:    true
+    region_name: ~
 
   github:
     owner:        genesis-community
@@ -40,4 +43,24 @@ meta:
     url:      ((shout.url)
     username: ((shout.username))
     password: ((shout.password))
+
+  upstream:
+    bosh_releases:
+    - name:       jumpbox
+      type:       bosh-io-release
+      repository: cloudfoundry-community/jumpbox-boshrelease
+      path:       manifests/releases/jumpbox.yml
+
+    - name:       networking
+      type:       bosh-io-release
+      repository: cloudfoundry/networking-release
+      path:       manifests/releases/networking.yml
+
+    - name:       openvpn
+      type:       bosh-io-release
+      repository: dpb587/openvpn-bosh-release
+
+    - name:       bosh-release-toolbelt
+      type:       bosh-io-release
+      repository: cloudfoundry-community/toolbelt-boshrelease
 
