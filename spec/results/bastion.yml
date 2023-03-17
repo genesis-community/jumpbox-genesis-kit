@@ -1,6 +1,6 @@
 exodus:
-  features: bastion
   bosh: bastion
+  features: bastion
   is_director: false
   use_create_env: false
 instance_groups:
@@ -43,10 +43,10 @@ instance_groups:
   vm_type: jumpbox
 name: bastion-jumpbox
 releases:
-- name:    jumpbox
+- name: jumpbox
+  sha1: fb85f9cde5fd683b16970b2839ddd21c61dbcf13
+  url: https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.9.2
   version: 4.9.2
-  url:     https://bosh.io/d/github.com/cloudfoundry-community/jumpbox-boshrelease?v=4.9.2
-  sha1:    fb85f9cde5fd683b16970b2839ddd21c61dbcf13
 - name: toolbelt
   sha1: 377b390b7f5d358a2dae463109350250a769eb3f
   url: https://bosh.io/d/github.com/cloudfoundry-community/toolbelt-boshrelease?v=3.7.0
