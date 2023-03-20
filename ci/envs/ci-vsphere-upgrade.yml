@@ -2,6 +2,7 @@
 kit:
   features:
     - ((append))
+    - openvpn
 
 genesis:
   env:   ci-vsphere-upgrade
@@ -9,3 +10,20 @@ genesis:
 params:
   availability_zones: [z1]
 
+  vpn_client_routes:
+    - 172.20.0.0 255.255.0.0
+  vpn_dns_servers:
+    - 8.8.8.8
+    - 8.8.4.4
+  vpn_iptables_forward:
+    - -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+  vpn_dns_search_domains:
+    - lab.starkandwayne.com
+    - snw.local
+  vpn_external_ip: vpn2.ops.scalecf.net
+  vpn_external_port: 1194
+  vpn_protocol: udp
+  vpn_extra_configs:
+    - fast-io
+    - sndbuf 393216
+    - rcvbuf 393216
