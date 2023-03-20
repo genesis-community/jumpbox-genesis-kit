@@ -1,0 +1,25 @@
+---
+sections:
+  - name:  core
+    label: Jumpbox Core Components
+
+core:
+  jumpbox:
+    type: release
+    org:  cloudfoundry-community
+    repo: jumpbox-boshrelease
+
+  networking:
+    type: release
+    org:  cloudfoundry
+    repo: networking-release
+
+  openvpn:
+    type: release
+    org:  starkandwayne
+    repo: openvpn-bosh-release
+
+  toolbelt:
+    type: release
+    org:  cloudfoundry-community
+    repo: toolbelt-boshrelease
