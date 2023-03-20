@@ -57,8 +57,8 @@ meta:
       path:       manifests/releases/networking.yml
 
     - name:       openvpn
-      type:       bosh-io-release
-      repository: dpb587/openvpn-bosh-release
+      type:       github-release
+      repository: Qarik-Group/openvpn-bosh-release
 
     - name:       bosh-release-toolbelt
       type:       bosh-io-release
