@@ -218,7 +218,7 @@ if [[ "$SKIP_SMOKE_TESTS" == "false" ]]; then
 	chmod 600 ~/.ssh/id_test_user
 
 	ip="$(genesis ci-vsphere-baseline.yml bosh vms --json | jq -r '.Tables[0].Rows[0].ips')"
-	echo "uname -a; echo -n 'User: '; whoami; uptime" | ssh -i ~/.ssh.id_test_user test-user@$ip
+	echo "uname -a; echo -n 'User: '; whoami; uptime" | ssh -i ~/.ssh.id_test_user -o StrictHostKeyChecking=accept-new -l test-user $ip
 
 	genesis "do" "${DEPLOY_ENV}" -- inventory
 
