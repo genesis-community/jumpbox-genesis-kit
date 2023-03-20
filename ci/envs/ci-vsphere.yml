@@ -1,9 +1,4 @@
 ---
-kit:
-  features:
-    ((append))
-    - vsphere
-
 genesis:
   bosh_env:  rsat-bc-genesis-ci
 

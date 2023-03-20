@@ -2,15 +2,28 @@
 kit:
   features:
     - ((append))
-    - small-footprint
+    - openvpn
 
 genesis:
   env:   ci-vsphere-baseline
 
 params:
-  disk_type:          default
-  base_domain:        (( concat meta._ip_prefix "9.10.netip.cc" ))
-  postgres_vip:       (( concat meta._ip_prefix "9.9" ))
   availability_zones: [z1]
-  haproxy_ips:        [ (( concat meta._ip_prefix "9.10" )) ]
-  haproxy_ips:        [10.128.9.10]
+
+  vpn_client_routes:
+    - 172.20.0.0 255.255.0.0
+  vpn_dns_servers:
+    - 8.8.8.8
+    - 8.8.4.4
+  vpn_iptables_forward:
+    - -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+  vpn_dns_search_domains:
+    - lab.starkandwayne.com
+    - snw.local
+  vpn_external_ip: vpn2.ops.scalecf.net
+  vpn_external_port: 1194
+  vpn_protocol: udp
+  vpn_extra_configs:
+    - fast-io
+    - sndbuf 393216
+    - rcvbuf 393216

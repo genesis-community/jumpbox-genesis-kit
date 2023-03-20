@@ -2,3 +2,16 @@
 kit:
   name: dev
   version: latest
+
+params:
+  users:
+  - name: test-user
+    shell: /bin/bash
+    ssh_keys:
+    - (( vault meta.vault "/users/test-user:public" ))
+
+instance_groups:
+- name: jumpbox
+  networks:
+    - name: (( grab params.jumpbox_network || "jumpbox"))
+      static_ips: (( static_ips 1 ))
