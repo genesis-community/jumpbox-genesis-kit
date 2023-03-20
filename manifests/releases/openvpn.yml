@@ -1,5 +1,5 @@
 releases:
 - name: openvpn
-  version: 5.8.1
-  url: https://github.com/starkandwayne/openvpn-bosh-release/releases/download/v5.8.1/openvpn-5.8.1.tar.gz
-  sha1: b74b462b7c218e94f5539d52cdec9179af96e89e
+  version: 5.8.4
+  url: https://github.com/starkandwayne/openvpn-bosh-release/releases/download/v5.8.4/openvpn-boshrelease-5.8.4.tar.gz
+  sha1: 3e202404b9140c3eeccfb7456c038cbe95241e8d
