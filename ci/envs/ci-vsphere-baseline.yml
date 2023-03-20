@@ -9,6 +9,7 @@ genesis:
 
 params:
   availability_zones: [z1]
+  stemcell_os: ubuntu-jammy
 
   vpn_client_routes:
     - 172.20.0.0 255.255.0.0

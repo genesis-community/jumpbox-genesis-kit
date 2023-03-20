@@ -209,12 +209,19 @@ if [[ "$SKIP_DEPLOY" == "false" ]]; then
 fi
 
 if [[ "$SKIP_SMOKE_TESTS" == "false" ]]; then
-	header "Validating addons..."
-	genesis "do" "${DEPLOY_ENV}" -- setup-cli -f
-	genesis "do" "${DEPLOY_ENV}" -- login
+	header "Validating user access..."
+	mkdir ~/.ssh
+	chmod 750 ~/.ssh
 
-	header "Running smoke tests..."
-	genesis "do" "${DEPLOY_ENV}" -- smoketest
+	vault_base="$(genesis lookup --env ci-vsphere-baseline.yml GENESIS_SECRETS_BASE)"
+	safe get $vault_base/users/test-user:private > ~/.ssh/id_test_user
+	chmod 600 ~/.ssh/id_test_user
+
+	ip="$(genesis ci-vsphere-baseline.yml bosh vms --json | jq -r '.Tables[0].Rows[0].ips')"
+	echo "uname -a; echo -n 'User: '; whoami; uptime" | ssh -i ~/.ssh.id_test_user test-user@$ip
+
+	genesis "do" "${DEPLOY_ENV}" -- inventory
+
 else
 	echo "Skipping smoke_tests"
 fi
