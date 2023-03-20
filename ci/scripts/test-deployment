@@ -213,11 +213,11 @@ if [[ "$SKIP_SMOKE_TESTS" == "false" ]]; then
 	mkdir ~/.ssh
 	chmod 750 ~/.ssh
 
-	vault_base="$(genesis lookup --env ci-vsphere-baseline.yml GENESIS_SECRETS_BASE)"
+	vault_base="$(genesis lookup --env "$DEPLOY_ENV" GENESIS_SECRETS_BASE)"
 	safe get $vault_base/users/test-user:private > ~/.ssh/id_test_user
 	chmod 600 ~/.ssh/id_test_user
 
-	ip="$(genesis ci-vsphere-baseline.yml bosh vms --json | jq -r '.Tables[0].Rows[0].ips')"
+	ip="$(genesis "$DEPLOY_ENV" bosh vms --json | jq -r '.Tables[0].Rows[0].ips')"
 	echo "Attempting to SSH to $ip as user 'test-user'..."
 	echo "uname -a && echo -n 'User: ' && whoami && uptime" | ssh -i ~/.ssh/id_test_user -o StrictHostKeyChecking=accept-new -l test-user $ip
 
