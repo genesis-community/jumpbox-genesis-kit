@@ -235,7 +235,8 @@ generate-vpn-config)
   ;;
 
 inventory)
-  exec bosh run-errand inventory
+  bosh run-errand inventory
+  exit 0
   ;;
 
 ssh)
