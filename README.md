@@ -44,5 +44,5 @@ Learn More
 For more in-depth documentation, check out the [manual][3].
 
 [1]: https://github.com/cloudfoundry-community/jumpbox-boshrelease
-[2]: https://github.com/djb587/openvpn-boshrelease
+[2]: https://github.com/Qarik-Group/openvpn-boshrelease
 [3]: MANUAL.md
