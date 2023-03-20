@@ -1,5 +1,5 @@
 releases:
-- name:    jumpbox
+- name: jumpbox
   version: 4.11.1
-  url:     https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/download/v4.11.1/jumpbox-4.11.1.tgz
-  sha1:    02783618aa313b9b1c2bafd402ffc019ab75cfda
+  url: https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/download/v4.11.1/jumpbox-4.11.1.tgz
+  sha1: 02783618aa313b9b1c2bafd402ffc019ab75cfda
