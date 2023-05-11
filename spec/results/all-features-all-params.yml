@@ -92,7 +92,7 @@ releases:
   version: 3.7.0
 - name: openvpn
   sha1: 3e202404b9140c3eeccfb7456c038cbe95241e8d
-  url: https://github.com/starkandwayne/openvpn-bosh-release/releases/download/v5.8.4/openvpn-boshrelease-5.8.4.tar.gz
+  url: https://github.com/RubidiumStudios/openvpn-bosh-release/releases/download/v5.8.4/openvpn-boshrelease-5.8.4.tar.gz
   version: 5.8.4
 - name: networking
   sha1: 9b5f9d27917c3754e492470ac6c9af80d62963db
