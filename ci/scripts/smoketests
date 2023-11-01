@@ -1,0 +1,13 @@
+header "Validating user access..."
+mkdir ~/.ssh
+chmod 750 ~/.ssh
+
+vault_base="$(genesis lookup --env "$DEPLOY_ENV" GENESIS_SECRETS_BASE)"
+safe get $vault_base/users/test-user:private > ~/.ssh/id_test_user
+chmod 600 ~/.ssh/id_test_user
+
+ip="$(genesis "$DEPLOY_ENV" bosh vms --json | jq -r '.Tables[0].Rows[0].ips')"
+echo "Attempting to SSH to $ip as user 'test-user'..."
+echo "uname -a && echo -n 'User: ' && whoami && uptime" | ssh -i ~/.ssh/id_test_user -o StrictHostKeyChecking=accept-new -l test-user $ip
+
+genesis "do" "${DEPLOY_ENV}" -- inventory
