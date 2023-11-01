@@ -20,8 +20,8 @@ for release in $upstream_details ; do
   if [[ $type == 'bosh-io-release' ]] ; then
     source=$'\n'"      repository: $repo";
   elif [[ $type == 'github-release' ]] ; then
-    owner="$(_lookup "$release" '.owner')"
-    if [[ -z "$owner" && "$owner" =~ / ]] ; then
+    owner="$(_lookup "$release" '.owner//""')"
+    if [[ -z "$owner" && "$repo" =~ / ]] ; then
       owner="${repo%%/*}"
       repo="${repo#*/}"
     fi
