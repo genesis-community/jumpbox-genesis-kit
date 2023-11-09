@@ -6,6 +6,9 @@ exodus:
 instance_groups:
 - azs:
   - z1
+  env:
+    bosh:
+      remove_dev_tools: true
   instances: 1
   jobs:
   - name: jumpbox
@@ -40,16 +43,16 @@ instance_groups:
 name: base-jumpbox
 releases:
 - name: jumpbox
-  sha1: 3b637bc0dd928fdf65b06f49b584fa395247b030
-  url: https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/download/v4.14.2/jumpbox-4.14.2.tgz
-  version: 4.14.2
+  sha1: f824e44d3d4b2a569591309f4d0187fe0c7c5bf2
+  url: https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/download/v5.0.0/jumpbox-5.0.0.tgz
+  version: 5.0.0
 - name: toolbelt
-  sha1: 377b390b7f5d358a2dae463109350250a769eb3f
-  url: https://bosh.io/d/github.com/cloudfoundry-community/toolbelt-boshrelease?v=3.7.0
-  version: 3.7.0
+  sha1: be140444c62cfbfcc9a809b0a343e3736fac6e9d
+  url: https://github.com/cloudfoundry-community/toolbelt-boshrelease/releases/download/v3.7.1/toolbelt-3.7.1.tgz
+  version: 3.7.1
 stemcells:
 - alias: default
-  os: ubuntu-bionic
+  os: ubuntu-jammy
   version: latest
 update:
   canaries: 1

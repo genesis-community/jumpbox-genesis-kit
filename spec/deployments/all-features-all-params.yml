@@ -3,6 +3,7 @@ kit:
   features:
     - openvpn
     - bastion
+    - dev-tools
 
 genesis:
   env:      all-features-all-params
