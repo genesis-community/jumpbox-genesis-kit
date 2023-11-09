@@ -64,7 +64,8 @@ meta:
       type:       github-release
       repository: Qarik-Group/openvpn-bosh-release
 
-    - name:       bosh-release-toolbelt
-      type:       bosh-io-release
+    - name:       toolbelt
+      type:       github-release
       repository: cloudfoundry-community/toolbelt-boshrelease
+      path:       manifests/releases/toolbelt.yml
 
