@@ -1,0 +1,6 @@
+---
+instance_groups:
+- name: jumpbox
+  env:
+    bosh:
+      remove_dev_tools: false

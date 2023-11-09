@@ -27,6 +27,9 @@ instance_groups:
     persistent_disk_type: (( grab params.jumpbox_disk_pool || "jumpbox" ))
     vm_type:              (( grab params.jumpbox_vm_type   || "jumpbox" ))
     stemcell: default
+    env:
+      bosh:
+        remove_dev_tools: true
     networks:
       - name: (( grab params.jumpbox_network || "jumpbox"))
         static_ips: (( static_ips 0 ))

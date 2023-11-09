@@ -83,6 +83,11 @@ params:
 
 # Available Features
 
+- `dev-tools` - By default, the developer build tools such as compilers and
+  software development utilities (see [here](https://github.com/cloudfoundry/bosh-linux-stemcell-builder/blob/master/stemcell_builder/stages/dev_tools_config/assets/generate_dev_tools_file_list.sh) for list)
+  won't be included on the jumpbox for security reasons.  If you'd like to
+  have these included, use this feature.
+
 - `bastion` - Dual-home a jumpbox, turning it into a _bastion_
   host that straddles two networks.
 

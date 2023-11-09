@@ -21,7 +21,7 @@ abort=
 warn=
 for want in $GENESIS_REQUESTED_FEATURES; do
   case "$want" in
-    (openvpn|bastion|proxy|azure|shield)
+    (openvpn|bastion|dev-tools|proxy|azure|shield)
       true # Defunct - will emit warning message later.
     ;;
     (*)
@@ -48,7 +48,7 @@ for want in $GENESIS_REQUESTED_FEATURES; do
              manifests/releases/networking.yml )
     ;;
  
-  (bastion)
+  (bastion|dev-tools)
     merge+=( "manifests/$want.yml" )
     ;;
  
