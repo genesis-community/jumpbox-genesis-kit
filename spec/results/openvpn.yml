@@ -84,9 +84,9 @@ releases:
   url: https://github.com/cloudfoundry-community/toolbelt-boshrelease/releases/download/v4.0.0/toolbelt-4.0.0.tgz
   version: 4.0.0
 - name: openvpn
-  sha1: 3e202404b9140c3eeccfb7456c038cbe95241e8d
-  url: https://github.com/cloudfoundry-community/openvpn-bosh-release/releases/download/v5.8.4/openvpn-boshrelease-5.8.4.tar.gz
-  version: 5.8.4
+  sha1: bd35e9bc2b35a3efb7615257c32674e8848137d1
+  url: https://github.com/cloudfoundry-community/openvpn-bosh-release/releases/download/v5.8.5/openvpn-boshrelease-5.8.5.tar.gz
+  version: 5.8.5
 - name: networking
   sha1: 9b5f9d27917c3754e492470ac6c9af80d62963db
   url: http://bosh.io/d/github.com/cloudfoundry/networking-release?v=9
