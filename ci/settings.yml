@@ -62,7 +62,7 @@ meta:
 
     - name:       openvpn
       type:       github-release
-      repository: Qarik-Group/openvpn-bosh-release
+      repository: cloudfoundry-community/openvpn-bosh-release
 
     - name:       toolbelt
       type:       github-release
