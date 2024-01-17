@@ -47,9 +47,9 @@ releases:
   url: https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/download/v5.0.0/jumpbox-5.0.0.tgz
   version: 5.0.0
 - name: toolbelt
-  sha1: be140444c62cfbfcc9a809b0a343e3736fac6e9d
-  url: https://github.com/cloudfoundry-community/toolbelt-boshrelease/releases/download/v3.7.1/toolbelt-3.7.1.tgz
-  version: 3.7.1
+  sha1: 9ef47e3aa0f9b22a4186df675f3c223fe3a6d847
+  url: https://github.com/cloudfoundry-community/toolbelt-boshrelease/releases/download/v4.0.0/toolbelt-4.0.0.tgz
+  version: 4.0.0
 stemcells:
 - alias: default
   os: ubuntu-jammy
