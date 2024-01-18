@@ -1,5 +1,5 @@
 releases:
-- name:    jumpbox
-  version: 5.0.0
-  url:     https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/download/v5.0.0/jumpbox-5.0.0.tgz
-  sha1:    f824e44d3d4b2a569591309f4d0187fe0c7c5bf2
+- name: jumpbox
+  version: 5.0.1
+  url: https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/download/v5.0.1/jumpbox-5.0.1.tgz
+  sha1: d6226850068eede0f1e96f3746e2265c0af567b0
