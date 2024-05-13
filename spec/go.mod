@@ -5,7 +5,7 @@ module github.com/genesis-community/jumpbox-genesis-kit/spec
 go 1.22
 
 require (
-	github.com/genesis-community/testkit v0.0.0-20210202143224-371569997dc4
+	github.com/genesis-community/testkit v0.0.0-20240513040443-103443ffba7c
 	github.com/onsi/ginkgo/v2 v2.17.2
 	github.com/onsi/gomega v1.33.0
 )
