@@ -1,6 +1,6 @@
 module github.com/genesis-community/jumpbox-genesis-kit/spec
 
-// replace github.com/genesis-community/testkit => ../../testkit
+replace github.com/genesis-community/testkit => ../../testkit
 
 go 1.22
 
