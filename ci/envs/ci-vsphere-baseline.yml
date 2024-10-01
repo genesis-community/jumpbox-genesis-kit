@@ -3,6 +3,10 @@ kit:
   features:
     - ((append))
     - openvpn
+  ci:
+    job: deploy
+    serial_groups: 
+    - deployment
 
 genesis:
   env:   ci-vsphere-baseline

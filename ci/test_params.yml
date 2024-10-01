@@ -1,3 +1,4 @@
+---
 params:
-  ca_validity_period: 1y
-  cert_validity_period: 180d
+  ca_validity_period:   3653d
+  cert_validity_period: 1096d

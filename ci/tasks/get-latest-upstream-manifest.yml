@@ -1,0 +1,20 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: ((image/concourse_go.url))
+    tag:        ((image/concourse_go.tag))
+
+inputs:
+  - name: git-ci
+  - name: git
+  - name: upstream-manifest
+    path: upstream
+
+outputs:
+  - name: git
+
+run:
+  path: git-ci/ci/scripts/get-latest-upstream-manifest

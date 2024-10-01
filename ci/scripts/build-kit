@@ -4,6 +4,7 @@ set -eu
 # Resource Directories
 export REPO_ROOT="git"
 export BUILD_ROOT="build"
+export RELEASE_CACHE_DIR="release-cache"
 export CI_ROOT="git-ci"
 export VERSION_FROM="version/number"
 
@@ -41,7 +42,7 @@ if [[ ${#check_dirs[@]} -gt 0 ]] ; then
   out="$(eval "spruce merge --skip-eval $( \
     grep -rl '^releases:' "${check_dirs[@]}" \
     | sed -e "s/\\(.*\\)/<(spruce json \\1 | jq -r '{releases: [ \"(( merge on sha1 ))\", .releases[] ]}')/" |tr "\n" " " \
-    ) | spruce json | jq -r ." )"
+  ) | spruce json | jq -r ." )"
   echo "$out" | spruce merge | spruce json | "${CI_ROOT}/ci/scripts/check-sha1s"
 fi
 

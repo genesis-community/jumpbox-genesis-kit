@@ -9,56 +9,20 @@ meta:
   version_file:    version
   initial_version: 1.3.4-rc.2
 
-  bosh:
-    uri:      ((bosh.uri))
-    username: ((bosh.username))
-    password: ((bosh.password))
-    cacert:   ((bosh.ca))
-
-  credhub:
-    url:      ((bosh.credhub_url))
-    username: ((bosh.credhub_username))
-    password: ((bosh.credhub_password))
-
-  vault:
-    url:       ((vault.url))
-    token:     ((vault.token))
-
-  #aws: For minio
-  #  endpoint:    ((aws.endpoint))
-  #  access_key:  ((aws.access_key_id))
-  #  secret_key:  ((aws.secret_access_key))
-  #  insecure:    true
-  #  region_name: ~
-
-  aws:
-    access_key:  ((cloudfoundry-community-aws.access_key_id))
-    secret_key:  ((cloudfoundry-community-aws.secret_access_key))
-
-  github:
-    owner:        genesis-community
-    repo:         jumpbox-genesis-kit
-    branch:       develop
-    main-branch:  main
-    private_key:  ((github.private_key))
-    access_token: ((github.access_token))
-
-  shout:
-    url:      ((shout.url))
-    username: ((shout.username))
-    password: ((shout.password))
-
   upstream:
+    categories:
+    - name:  core
+      label: Jumpbox Core Components
+      default: true
+
     bosh_releases:
     - name:       jumpbox
       type:       github-release
       repository: cloudfoundry-community/jumpbox-boshrelease
-      path:       manifests/releases/jumpbox.yml
 
     - name:       networking
       type:       bosh-io-release
       repository: cloudfoundry/networking-release
-      path:       manifests/releases/networking.yml
 
     - name:       openvpn
       type:       github-release
@@ -67,5 +31,32 @@ meta:
     - name:       toolbelt
       type:       github-release
       repository: cloudfoundry-community/toolbelt-boshrelease
-      path:       manifests/releases/toolbelt.yml
 
+  bosh:
+    uri:      ((bosh.uri))
+    username: ((bosh.username))
+    password: ((bosh.password))
+    cacert:   ((bosh.ca))
+
+  vault:
+    url:       ((vault.url))
+    token:     ((vault.token))
+
+  aws:
+    access_key: ((cloudfoundry-community-aws.access_key_id))
+    secret_key: ((cloudfoundry-community-aws.secret_access_key))
+
+  github:
+    owner:        genesis-community
+    repo:         jumpbox-genesis-kit
+    branch:       develop
+    main-branch:  main
+    private_key:  ((github.private_key))
+    access_token: ((github.access_token))
+    name:         ((github.name))
+    email:        ((github.email))
+
+  shout:
+    url:      ((shout.url))
+    username: ((shout.username))
+    password: ((shout.password))

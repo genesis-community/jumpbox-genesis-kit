@@ -18,18 +18,27 @@ meta:
   target:   (( param "Please identify the name of the target Concourse CI" ))
   url:      (( param "Please specify the full url of the target Concourse CI" ))
   pipeline: (( grab meta.name ))
+  blocking_tests: []
+
+  upstream:
+    manifest:
+      package:  ~
+      path:     (( grab meta.upstream.manifest.package ))
+      org:      cloudfoundry
+      repo:     (( concat meta.upstream.manifest.org "/" meta.upstream.manifest.package ))
+      url:      (( concat "https://github.com/" meta.upstream.manifest.repo ".git" ))
 
   vault:
     url:   (( param "Please provide the address of your Vault" ))
     token: (( param "Please provide a Vault Token" ))
 
   git:
-    email: genesis-ci@rubidiumstudios.com
-    name:  Genesis CI Bot
+    email: ((github.email))
+    name:  ((github.name))
 
   image:
-    repository: registry.ops.scalecf.net/genesis-community/genesis
-    tag:        latest
+    name: ((image/genesis.url))
+    tag:  ((image/genesis.tag))
 
   aws:
     bucket:      genesis-pipeline
@@ -77,11 +86,8 @@ groups:
   - name: (( grab meta.pipeline ))
     jobs:
     - build-kit
-    - spec-tests
     - spec-check
     - ship-prerelease
-    - deploy
-    - upgrade
     - prepare
     - ship-release
 
