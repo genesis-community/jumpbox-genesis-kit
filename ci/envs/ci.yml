@@ -3,6 +3,9 @@ kit:
   name: dev
   version: latest
 
+genesis:
+  min_version: 3.0.9
+  
 params:
   users:
   - name: test-user
