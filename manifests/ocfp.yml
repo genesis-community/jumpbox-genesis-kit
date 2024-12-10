@@ -1,0 +1,14 @@
+---
+meta:
+  ocfp:
+    cloud:     (( concat genesis.env "." genesis.type "." ))
+
+params:
+  jumpbox_vm_type:   (( concat meta.ocfp.cloud "vm-jumpbox" ))
+  jumpbox_disk_type: (( concat meta.ocfp.cloud "disk-jumpbox" ))
+  jumpbox_network:   (( concat meta.ocfp.cloud "net-jumpbox" ))
+
+instance_groups:
+  - name: jumpbox
+    vm_type: (( grab params.jumpbox_vm_type ))
+    persistent_disk_type: (( grab params.jumpbox_disk_type ))
