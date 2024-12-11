@@ -22,6 +22,8 @@ The following addons are defined for the #C{$GENESIS_KIT_ID} kit:
   #G{who}                         See who is logged into the jumpbox, via SSH.
                               (requires the ability to login via SSH)
 
+  #G{users-from}                  Manage users from GitHub/GitLab SSH keys in ./ops/users.yml
+
 If the 'openvpn' feature has been enabled, the following addons are also
 available:
 
@@ -247,6 +249,10 @@ ssh)
 who)
   generate_ip_list;
   exec ssh "${ips[0]}" -- who
+  ;;
+
+users-from)
+  exec hooks/users-from "$@"
   ;;
 
 *)
