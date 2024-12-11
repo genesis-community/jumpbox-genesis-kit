@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+
 use IO::Socket::SSL;
 use Socket;
 use Config;
@@ -16,28 +17,27 @@ use Cwd;
 
 # Configuration
 my %CONFIG = (
-  TIMEOUT           => 10,               # Initial connection timeout in seconds
-  MAX_RETRIES       => 3,                # Maximum number of retry attempts
-  RETRY_DELAY_BASE  => 2,                # Base for exponential backoff
-  MAX_USERNAMES     => 50,               # Maximum number of usernames to process
-  FILE_PERMISSIONS  => 0600,             # Restrictive file permissions
-  PROGRESS_WIDTH    => 20,               # Width of progress bar
+  TIMEOUT           => 10,             # Initial connection timeout in seconds
+  MAX_RETRIES       => 3,               # Maximum number of retry attempts
+  RETRY_DELAY_BASE  => 2,               # Base for exponential backoff
+  MAX_USERNAMES     => 50,              # Maximum number of usernames to process
+  FILE_PERMISSIONS  => 0600,            # Restrictive file permissions
+  PROGRESS_WIDTH    => 20,              # Width of progress bar
   BATCH_SIZE        => 1000,             # Number of bytes to read at a time
   MAX_MEMORY_MB     => 100,              # Maximum memory usage warning threshold
-  RATE_LIMIT_TOKENS => 10,               # Initial rate limit tokens
-  RATE_LIMIT_RATE   => 1,                # Tokens per second
+  RATE_LIMIT_TOKENS => 10,             # Initial rate limit tokens
+  RATE_LIMIT_RATE   => 1,               # Tokens per second
   MAX_LOG_SIZE      => 10 * 1024 * 1024, # 10MB max log size
   OUTPUT_FILE       => Cwd::getcwd() . '/ops/users.yml',
-  BACKUP_EXTENSION  => '.'.strftime("%Y-%m-%d %H:%M:%S", localtime),
   USER_AGENT        => 'KeysFetcher/1.0',
   LOG_FILE          => '/tmp/users-from.log',
-  VALID_ACTIONS     => {                 # Valid action mappings
+  VALID_ACTIONS  => {                  # Valid action mappings
     'add'    => 'add',
     'a'      => 'add',
     'remove' => 'remove',
     'r'      => 'remove',
   },
-  VALID_SOURCES    => {                # Valid source mappings
+  VALID_SOURCES => {                   # Valid source mappings
     'github'  => {
       host => 'github.com',
       prefix => 'github',
@@ -47,8 +47,9 @@ my %CONFIG = (
       prefix => 'gitlab',
     },
   },
-  DEFAULT_SOURCE   => 'github',        # Default source if none specified
+  DEFAULT_SOURCE => 'github',          # Default source if none specified
 );
+
 
 # Initialize rate limiting
 my $tokens = $CONFIG{RATE_LIMIT_TOKENS};
@@ -131,19 +132,13 @@ sub consume_token {
 }
 
 # Function for safe file writing
-sub safe_write_file {
+sub write_file_safely {
   my ($filename, $content) = @_;
   my $old_mask = umask(0077);  # Ensure restrictive permissions
 
   eval {
     my $tmp_file = "$filename.tmp";
     register_temp_file($tmp_file);
-
-    # Backup existing file if it exists
-    if (-f $filename) {
-      my $backup = $filename . $CONFIG{BACKUP_EXTENSION};
-      rename($filename, $backup) or die "Cannot create backup: $!";
-    }
 
     open(my $fh, '>', $tmp_file) or die "Cannot open $tmp_file: $!";
     flock($fh, LOCK_EX) or die "Cannot lock $tmp_file: $!";
@@ -233,7 +228,7 @@ sub parse_username_with_source {
     # Validate source prefix
     unless (exists $CONFIG{VALID_SOURCES}{$prefix}) {
       die "Invalid source prefix '$prefix'. Valid sources are: " .
-          join(", ", sort keys %{$CONFIG{VALID_SOURCES}}) . "\n";
+      join(", ", sort keys %{$CONFIG{VALID_SOURCES}}) . "\n";
     }
     $source = $prefix;
   }
@@ -400,9 +395,9 @@ sub yaml_escape {
 # Enhanced YAML parsing function
 sub parse_yaml {
   my ($file) = @_;
-  my $data = { users => [] };
+  my %users;  # Hash to store user data
 
-  return $data unless -f $file;
+  return \%users unless -f $file;
 
   open(my $fh, '<', $file) or die "Cannot open $file: $!";
   my @lines = <$fh>;
@@ -410,34 +405,71 @@ sub parse_yaml {
 
   my $current_user;
   foreach my $line (@lines) {
+    chomp $line;
     if ($line =~ /^\s*-\s*name:\s*['"]?(.*?)['"]?\s*$/) {
-      $current_user = { name => $1, ssh_keys => [] };
-      push @{$data->{users}}, $current_user;
+      $current_user = $1;
+      $users{$current_user} = {
+        shell => '/bin/bash',  # Default shell
+        ssh_keys => []
+      };
     }
     elsif ($line =~ /^\s*shell:\s*['"]?(.*?)['"]?\s*$/ && $current_user) {
-      $current_user->{shell} = $1;
+      $users{$current_user}->{shell} = $1;
     }
-    elsif ($line =~ /^\s*-\s*(?!\(\(\s*append\s*\)\))(.*?)\s*$/ && $current_user) {
-      push @{$current_user->{ssh_keys}}, $1;
+    elsif ($line =~ /^\s*-\s*(.*?)\s*$/ && $current_user) {
+      my $key = $1;
+      # Skip append directives and empty lines
+      next if $key =~ /^\(\(\s*append\s*\)\)$/ || $key =~ /^\s*$/;
+      push @{$users{$current_user}->{ssh_keys}}, $key;
     }
   }
 
-  return $data;
+  return \%users;
 }
+
+# Function to add or update user keys
+sub process_user_keys {
+  my ($users_ref, $username, $new_keys) = @_;
+
+  # Create user if doesn't exist
+  if (!exists $users_ref->{$username}) {
+    $users_ref->{$username} = {
+      shell => '/bin/bash',
+      ssh_keys => []
+    };
+  }
+
+  # Track existing keys for deduplication
+  my %existing_keys = map { $_ => 1 } @{$users_ref->{$username}->{ssh_keys}};
+
+  # Add new keys if they don't exist
+  foreach my $key (@$new_keys) {
+    next if exists $existing_keys{$key};  # Skip if already present
+    push @{$users_ref->{$username}->{ssh_keys}}, $key;
+    $existing_keys{$key} = 1;
+  }
+}
+
 
 # Function to generate YAML
 sub to_yaml {
-  my ($data) = @_;
+  my ($users_ref) = @_;
   my $yaml = "---\nusers:\n";
 
-  foreach my $user (@{$data->{users}}) {
-    $yaml .= "  - name: " . yaml_escape($user->{name}) . "\n";
+  # Sort usernames for consistent output
+  foreach my $username (sort keys %$users_ref) {
+    my $user = $users_ref->{$username};
+    $yaml .= "  - name: " . yaml_escape($username) . "\n";
     $yaml .= "    shell: " . yaml_escape($user->{shell}) . "\n";
-    $yaml .= "    ssh_keys:\n      - (( append )) \n";
+    $yaml .= "    ssh_keys:\n";
+    # Add append directive as first element
+    $yaml .= "      - (( append ))\n";
+
+    # Add all SSH keys
     foreach my $key (@{$user->{ssh_keys}}) {
-      # Properly indent and escape multi-line keys
-      $key =~ s/\n/\n      /g;
-      $yaml .= "      - " . yaml_escape($key) . "\n";
+      my $escaped_key = $key;
+      $escaped_key =~ s/\n/\n      /g;
+      $yaml .= "      - " . yaml_escape($escaped_key) . "\n";
     }
   }
 
@@ -514,6 +546,9 @@ eval {
     users => []
   };
 
+  # Read existing YAML into users hash
+  my $users = parse_yaml($CONFIG{OUTPUT_FILE});
+
   if ($action eq 'add') {
     foreach my $username_spec (@ARGV) {
       $processed++;
@@ -531,7 +566,7 @@ eval {
           )
         );
 
-        check_memory_usage();
+        validate_username($username);
 
         unless (check_rate_limit()) {
           log_message('warning', "Rate limit reached, waiting...");
@@ -541,13 +576,10 @@ eval {
 
         consume_token();
 
-        # Validate username format
-        validate_username($username);
-
         # Fetch SSH keys
         my $content = fetch_https_content($source, $username);
 
-        # Process keys in streaming fashion
+        # Process keys
         my @valid_keys;
         foreach my $key (split /\n/, ensure_utf8($content)) {
           next unless $key =~ /\S/;
@@ -557,23 +589,8 @@ eval {
         }
 
         if (@valid_keys) {
-          # If we already have a user entry, merge the keys
-          my ($existing_user) = grep { $_->{name} eq $username } @{$data->{users}};
-
-          if ($existing_user) {
-            my %seen_keys = map { $_ => 1 } @{$existing_user->{ssh_keys}};
-            foreach my $key (@valid_keys) {
-              push @{$existing_user->{ssh_keys}}, $key unless $seen_keys{$key};
-              $seen_keys{$key} = 1;
-            }
-          } else {
-            push @{$data->{users}}, {
-              name     => $username,
-              shell    => '/bin/bash',
-              ssh_keys => \@valid_keys
-            };
-          }
-
+          # Process the valid keys for this user
+          process_user_keys($users, $username, \@valid_keys);
           $successful++;
           print_status('success', "Found " . scalar(@valid_keys) . " valid keys for $username from $source");
         } else {
@@ -590,40 +607,117 @@ eval {
       sleep 1;
     }
   }
-
-  # Read existing YAML
-  my $existing_data = parse_yaml($CONFIG{OUTPUT_FILE});
-
-  # Apply action
-  if ($action eq 'add') {
-    $existing_data = add_users($existing_data, $data);
-    print_status('success', "Added/updated users in YAML");
-  } elsif ($action eq 'remove') {
-    # For remove action, we just need the usernames without source
-    my @usernames = map {
-      my $info = parse_username_with_source($_);
-      $info->{username};
-    } @ARGV;
-    $existing_data = remove_users($existing_data, \@usernames);
-    print_status('success', "Removed specified users from YAML");
+  elsif ($action eq 'remove') {
+    foreach my $username_spec (@ARGV) {
+      my $info = parse_username_with_source($username_spec);
+      my $username = $info->{username};
+      delete $users->{$username};
+      print_status('success', "Removed user $username");
+    }
   }
 
-  # Generate YAML output if we have any successful users
-  if (@{$existing_data->{users}}) {
+  # Generate and write YAML if we have users
+  if (keys %$users) {
     print_status('info', "\nGenerating YAML file...");
 
     eval {
-      # Generate YAML and write to file
-      my $yaml_content = to_yaml($existing_data);
+      my $yaml_content = to_yaml($users);
 
       make_path(File::Basename::dirname($CONFIG{OUTPUT_FILE}))
-        unless -d File::Basename::dirname($CONFIG{OUTPUT_FILE});
+      unless -d File::Basename::dirname($CONFIG{OUTPUT_FILE});
 
-      safe_write_file($CONFIG{OUTPUT_FILE}, $yaml_content);
+      write_file_safely($CONFIG{OUTPUT_FILE}, $yaml_content);
 
       print_status('success', "YAML file '$CONFIG{OUTPUT_FILE}' has been updated successfully");
-      print_status('success', sprintf("File permissions set to %04o for security",
-                                    $CONFIG{FILE_PERMISSIONS}));
+    };
+    if ($@) {
+      print_status('error', "Failed to write YAML file: $@");
+      exit 1;
+    }
+  } else {
+    print_status('warning', "No users remain in YAML file");
+  }
+
+  if ($action eq 'add') {
+    foreach my $username_spec (@ARGV) {
+      $processed++;
+
+      eval {
+        my $info = parse_username_with_source($username_spec);
+        my $username = $info->{username};
+        my $source = $info->{source};
+
+        print_status('info',
+          sprintf("Processing %s from %s %s",
+            $username,
+            $source,
+            format_progress_bar($processed, scalar(@ARGV))
+          )
+        );
+
+        validate_username($username);
+
+        unless (check_rate_limit()) {
+          log_message('warning', "Rate limit reached, waiting...");
+          sleep 1;
+          next;
+        }
+
+        consume_token();
+
+        # Fetch SSH keys
+        my $content = fetch_https_content($source, $username);
+
+        # Process keys
+        my @valid_keys;
+        foreach my $key (split /\n/, ensure_utf8($content)) {
+          next unless $key =~ /\S/;
+          if ($key =~ /^(ssh-rsa|ssh-dss|ssh-ed25519|ecdsa-sha2-nistp256|ecdsa-sha2-nistp384|ecdsa-sha2-nistp521)\s+[A-Za-z0-9+\/]+[=]{0,3}(\s+.+)?$/) {
+            push @valid_keys, $key;
+          }
+        }
+
+        if (@valid_keys) {
+          # Process the valid keys for this user
+          process_user_keys($users, $username, \@valid_keys);
+          $successful++;
+          print_status('success', "Found " . scalar(@valid_keys) . " valid keys for $username from $source");
+        } else {
+          die "No valid SSH keys found\n";
+        }
+      };
+      if ($@) {
+        $failed++;
+        my $error = $@;
+        chomp $error;
+        print_status('error', "Failed processing $username_spec: $error");
+      }
+
+      sleep 1;
+    }
+  }
+  elsif ($action eq 'remove') {
+    foreach my $username_spec (@ARGV) {
+      my $info = parse_username_with_source($username_spec);
+      my $username = $info->{username};
+      delete $users->{$username};
+      print_status('success', "Removed user $username");
+    }
+  }
+
+  # Generate and write YAML if we have users
+  if (keys %$users) {
+    print_status('info', "\nGenerating YAML file...");
+
+    eval {
+      my $yaml_content = to_yaml($users);
+
+      make_path(File::Basename::dirname($CONFIG{OUTPUT_FILE}))
+      unless -d File::Basename::dirname($CONFIG{OUTPUT_FILE});
+
+      write_file_safely($CONFIG{OUTPUT_FILE}, $yaml_content);
+
+      print_status('success', "YAML file '$CONFIG{OUTPUT_FILE}' has been updated successfully");
     };
     if ($@) {
       print_status('error', "Failed to write YAML file: $@");
@@ -670,20 +764,20 @@ genesis do users-from <add|a|remove|r> [github|gitlab/]username_1 [[github|gitla
 =head1 DESCRIPTION
 
 Manages SSH keys configuration by either adding or removing specified users:
-  add|a    - Fetches and adds/updates SSH keys for specified users
-  remove|r - Removes specified users from the configuration
+add|a    - Fetches and adds/updates SSH keys for specified users
+remove|r - Removes specified users from the configuration
 
 Users can be specified with an optional source prefix (github/ or gitlab/).
 If no prefix is given, github is used as the default source.
 
 Examples:
-  genesis do users-from add dennisjbell gitlab/wayneeseguin github/krutten
-  genesis do users-from remove gitlab/wayneeseguin
+genesis do users-from add dennisjbell gitlab/wayneeseguin github/krutten
+genesis do users-from remove gitlab/wayneeseguin
 
 Each user is expected to have added SSH keys to their account, which can be
 found by browsing to:
-  - GitHub users: https://github.com/<username>.keys
-  - GitLab users: https://gitlab.com/<username>.keys
+- GitHub users: https://github.com/<username>.keys
+- GitLab users: https://gitlab.com/<username>.keys
 
 =head1 DEPENDENCIES
 
