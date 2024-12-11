@@ -1,0 +1,697 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use IO::Socket::SSL;
+use Socket;
+use Config;
+use Encode qw(decode encode);
+use POSIX qw(strftime);
+use File::Basename;
+use File::Path qw(make_path);
+use Fcntl qw(:flock SEEK_SET);
+use List::Util qw(min);
+use Cwd;
+#use Genesis; # TODO
+
+# Configuration
+my %CONFIG = (
+  TIMEOUT           => 10,               # Initial connection timeout in seconds
+  MAX_RETRIES       => 3,                # Maximum number of retry attempts
+  RETRY_DELAY_BASE  => 2,                # Base for exponential backoff
+  MAX_USERNAMES     => 50,               # Maximum number of usernames to process
+  FILE_PERMISSIONS  => 0600,             # Restrictive file permissions
+  PROGRESS_WIDTH    => 20,               # Width of progress bar
+  BATCH_SIZE        => 1000,             # Number of bytes to read at a time
+  MAX_MEMORY_MB     => 100,              # Maximum memory usage warning threshold
+  RATE_LIMIT_TOKENS => 10,               # Initial rate limit tokens
+  RATE_LIMIT_RATE   => 1,                # Tokens per second
+  MAX_LOG_SIZE      => 10 * 1024 * 1024, # 10MB max log size
+  OUTPUT_FILE       => Cwd::getcwd() . '/ops/users.yml',
+  BACKUP_EXTENSION  => '.'.strftime("%Y-%m-%d %H:%M:%S", localtime),
+  USER_AGENT        => 'KeysFetcher/1.0',
+  LOG_FILE          => '/tmp/users-from.log',
+  VALID_ACTIONS     => {                 # Valid action mappings
+    'add'    => 'add',
+    'a'      => 'add',
+    'remove' => 'remove',
+    'r'      => 'remove',
+  },
+  VALID_SOURCES    => {                # Valid source mappings
+    'github'  => {
+      host => 'github.com',
+      prefix => 'github',
+    },
+    'gitlab'  => {
+      host => 'gitlab.com',
+      prefix => 'gitlab',
+    },
+  },
+  DEFAULT_SOURCE   => 'github',        # Default source if none specified
+);
+
+# Initialize rate limiting
+my $tokens = $CONFIG{RATE_LIMIT_TOKENS};
+my $last_update = time;
+
+# Initialize counters for summary
+my $processed = 0;
+my $successful = 0;
+my $failed = 0;
+
+# Track temporary files for cleanup
+my @temp_files;
+
+# Status message types with basic ASCII color codes
+my %colors = (
+  info    => "\033[36m",  # Cyan
+  success => "\033[32m",  # Green
+  warning => "\033[33m",  # Yellow
+  error   => "\033[31m",  # Red
+  reset   => "\033[0m"    # Reset
+);
+
+# Check if terminal supports colors
+BEGIN {
+  if (!-t STDOUT || $ENV{NO_COLOR}) {
+    %colors = map { $_ => '' } keys %colors;
+  }
+}
+
+# Set up signal handlers
+$SIG{INT} = $SIG{TERM} = sub {
+  print_status('warning', "Interrupted, cleaning up...");
+  cleanup_temp_files();
+  exit 1;
+};
+
+# Function to check memory usage
+sub check_memory_usage {
+  return unless $Config{d_syscall};
+  my $status = `cat /proc/self/status 2>/dev/null`;
+  if ($status =~ /VmRSS:\s*(\d+)/i) {
+    my $mb = $1 / 1024;
+    print_status('warning', "Memory usage: $mb MB") if $mb > $CONFIG{MAX_MEMORY_MB};
+    return $mb;
+  }
+  return 0;
+}
+
+# Function to print status messages
+sub print_status {
+  my ($type, $message) = @_;
+  print "$colors{$type}\[$type\]$colors{reset} $message\n";
+  log_message($type, $message);
+}
+
+# Function to format progress bar
+sub format_progress_bar {
+  my ($current, $total) = @_;
+  my $width = $CONFIG{PROGRESS_WIDTH};
+  my $progress = $current / $total;
+  my $filled = int($progress * $width);
+  return sprintf "[%s%s] %d%%",
+  "=" x $filled,
+  " " x ($width - $filled),
+  $progress * 100;
+}
+
+# Function to handle rate limiting
+sub check_rate_limit {
+  my $now = time;
+  my $elapsed = $now - $last_update;
+  $tokens = min($CONFIG{RATE_LIMIT_TOKENS},
+    $tokens + $elapsed * $CONFIG{RATE_LIMIT_RATE});
+  $last_update = $now;
+  return $tokens >= 1;
+}
+
+sub consume_token {
+  $tokens--;
+}
+
+# Function for safe file writing
+sub safe_write_file {
+  my ($filename, $content) = @_;
+  my $old_mask = umask(0077);  # Ensure restrictive permissions
+
+  eval {
+    my $tmp_file = "$filename.tmp";
+    register_temp_file($tmp_file);
+
+    # Backup existing file if it exists
+    if (-f $filename) {
+      my $backup = $filename . $CONFIG{BACKUP_EXTENSION};
+      rename($filename, $backup) or die "Cannot create backup: $!";
+    }
+
+    open(my $fh, '>', $tmp_file) or die "Cannot open $tmp_file: $!";
+    flock($fh, LOCK_EX) or die "Cannot lock $tmp_file: $!";
+
+    seek($fh, 0, SEEK_SET) or die "Cannot seek $tmp_file: $!";
+    truncate($fh, 0) or die "Cannot truncate $tmp_file: $!";
+
+    print $fh encode_output($content) or die "Cannot write to $tmp_file: $!";
+
+    close($fh) or die "Cannot close $tmp_file: $!";
+
+    rename($tmp_file, $filename) or die "Cannot rename $tmp_file to $filename: $!";
+    chmod($CONFIG{FILE_PERMISSIONS}, $filename) or die "Cannot set permissions: $!";
+  };
+  my $error = $@;
+  umask($old_mask);  # Restore original umask
+
+  die $error if $error;
+}
+
+# Function to rotate log file if needed
+sub rotate_log_if_needed {
+  return unless -f $CONFIG{LOG_FILE};
+
+  my $size = -s $CONFIG{LOG_FILE};
+  return unless $size && $size > $CONFIG{MAX_LOG_SIZE};
+
+  my $backup = $CONFIG{LOG_FILE} . ".1";
+  rename($CONFIG{LOG_FILE}, $backup);
+}
+
+# Function to log messages with timestamp
+sub log_message {
+  my ($type, $message) = @_;
+  my $timestamp = strftime("%Y-%m-%d %H:%M:%S", localtime);
+  my $log_message = "[$timestamp] [$type] $message\n";
+
+  eval {
+    rotate_log_if_needed();
+
+    open(my $fh, '>>', $CONFIG{LOG_FILE}) or die "Cannot open log file: $!";
+    flock($fh, LOCK_EX) or die "Cannot lock log file: $!";
+    print $fh $log_message;
+    close($fh);
+  };
+  warn "Failed to write to log file: $@" if $@;
+}
+
+# Function for enhanced username validation
+sub validate_username {
+  my ($username) = @_;
+
+  # Check length
+  die "Username too short\n" if length($username) < 1;
+  die "Username too long\n" if length($username) > 39;
+
+  # Check valid characters and pattern
+  die "Invalid username format\n"
+  unless $username =~ /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/;
+
+  # Check for consecutive hyphens
+  die "Invalid username format: consecutive hyphens\n"
+  if $username =~ /--/;
+
+  # Check start/end characters
+  die "Invalid username format: cannot start with hyphen\n"
+  if $username =~ /^-/;
+  die "Invalid username format: cannot end with hyphen\n"
+  if $username =~ /-$/;
+
+  return 1;
+}
+
+# Enhanced username parsing function
+sub parse_username_with_source {
+  my ($username_spec) = @_;
+
+  # Default source if no prefix
+  my $source = $CONFIG{DEFAULT_SOURCE};
+  my $username = $username_spec;
+
+  # Check for source prefix (e.g., "github/username" or "gitlab/username")
+  if ($username_spec =~ m{^([\w-]+)/(.+)$}) {
+    my $prefix = lc($1);
+    $username = $2;
+
+    # Validate source prefix
+    unless (exists $CONFIG{VALID_SOURCES}{$prefix}) {
+      die "Invalid source prefix '$prefix'. Valid sources are: " .
+          join(", ", sort keys %{$CONFIG{VALID_SOURCES}}) . "\n";
+    }
+    $source = $prefix;
+  }
+
+  return {
+    username => $username,
+    source => $source,
+  };
+}
+
+# Function to check network connectivity
+sub check_network {
+  my $host = 'github.com';
+  my $sock = IO::Socket::INET->new(
+    PeerAddr => $host,
+    PeerPort => 443,
+    Proto    => 'tcp',
+    Timeout  => 5
+  );
+
+  die "Network connectivity check failed: $!\n" unless $sock;
+  close($sock);
+  return 1;
+}
+
+# Function to handle timeouts
+sub with_timeout {
+  my ($timeout, $code) = @_;
+
+  eval {
+    local $SIG{ALRM} = sub { die "Operation timed out\n" };
+    alarm($timeout);
+    $code->();
+    alarm(0);
+  };
+  alarm(0);
+  die $@ if $@;
+}
+
+# Modified fetch_https_content to use source information
+sub fetch_https_content {
+  my ($source, $username) = @_;
+  my $host = $CONFIG{VALID_SOURCES}{$source}{host};
+  my $path = "/$username.keys";
+  my $retry_count = 0;
+  my $content = '';
+
+  while ($retry_count < $CONFIG{MAX_RETRIES}) {
+    no warnings 'exiting';
+    eval {
+      with_timeout($CONFIG{TIMEOUT} * ($retry_count + 1), sub {
+          my $socket = IO::Socket::SSL->new(
+            PeerHost => $host,
+            PeerPort => 443,
+            SSL_verify_mode => SSL_VERIFY_NONE,
+            Timeout => $CONFIG{TIMEOUT} * ($retry_count + 1)
+          ) or die "Cannot create SSL socket: $@";
+
+          print $socket "GET $path HTTP/1.1\r\n";
+          print $socket "Host: $host\r\n";
+          print $socket "User-Agent: $CONFIG{USER_AGENT}\r\n";
+          print $socket "Connection: close\r\n\r\n";
+
+          my $in_headers = 1;
+          my $response = '';
+
+          while (1) {
+            my $chunk = '';
+            my $bytes = sysread($socket, $chunk, $CONFIG{BATCH_SIZE});
+            last unless defined $bytes && $bytes > 0;
+            $response .= $chunk;
+          }
+
+          close $socket;
+
+          # Parse response
+          my $parsed = parse_http_response($response);
+
+          if ($parsed->{status_code} == 200) {
+            $content = $parsed->{body};
+          } elsif ($parsed->{status_code} == 404) {
+            die "User not found\n";
+          } elsif ($parsed->{status_code} == 403) {
+            die "Rate limit exceeded\n";
+          } else {
+            die "HTTP Error: " . $parsed->{status_code} . "\n";
+          }
+        });
+      last;  # Success, exit retry loop
+    };
+
+    if ($@) {
+      $retry_count++;
+      my $error = $@;
+      if ($retry_count < $CONFIG{MAX_RETRIES}) {
+        my $delay = $CONFIG{RETRY_DELAY_BASE} ** $retry_count;
+        print_status('warning', "Attempt $retry_count failed: $error. Retrying in $delay seconds...");
+        sleep($delay);
+        next;
+      }
+      die $error;
+    }
+  }
+
+  return $content;
+}
+
+# Function for better HTTP response parsing
+sub parse_http_response {
+  my ($response) = @_;
+  my %result;
+
+  # Split into headers and body
+  my ($headers, $body) = split /\r\n\r\n/, $response, 2;
+
+  # Parse status line
+  my ($http_version, $status_code, $reason) =
+  $headers =~ m{^HTTP/(\d\.\d)\s+(\d+)\s+(.+?)\r\n}
+    or die "Invalid HTTP response\n";
+
+  # Parse headers into hash
+  my %headers;
+  while ($headers =~ /^(.+?):\s*(.+?)\r\n/mg) {
+    $headers{lc $1} = $2;
+  }
+
+  return {
+    status_code => $status_code,
+    headers => \%headers,
+    body => $body
+  };
+}
+
+# UTF-8 handling functions
+sub ensure_utf8 {
+  my ($str) = @_;
+  return $str if Encode::is_utf8($str);
+  return decode('UTF-8', $str, Encode::FB_CROAK);
+}
+
+sub encode_output {
+  my ($str) = @_;
+  return encode('UTF-8', $str, Encode::FB_CROAK);
+}
+
+# Function to clean up temporary files
+sub register_temp_file {
+  my ($filename) = @_;
+  push @temp_files, $filename;
+}
+
+sub cleanup_temp_files {
+  unlink $_ for @temp_files;
+}
+
+# YAML escape function
+sub yaml_escape {
+  my ($str) = @_;
+  return $str unless $str =~ /[:"'\\\n]/;
+  $str =~ s/'/'\\''/g;
+  return "'$str'";
+}
+
+# Enhanced YAML parsing function
+sub parse_yaml {
+  my ($file) = @_;
+  my $data = { users => [] };
+
+  return $data unless -f $file;
+
+  open(my $fh, '<', $file) or die "Cannot open $file: $!";
+  my @lines = <$fh>;
+  close($fh);
+
+  my $current_user;
+  foreach my $line (@lines) {
+    if ($line =~ /^\s*-\s*name:\s*['"]?(.*?)['"]?\s*$/) {
+      $current_user = { name => $1, ssh_keys => [] };
+      push @{$data->{users}}, $current_user;
+    }
+    elsif ($line =~ /^\s*shell:\s*['"]?(.*?)['"]?\s*$/ && $current_user) {
+      $current_user->{shell} = $1;
+    }
+    elsif ($line =~ /^\s*-\s*(?!\(\(\s*append\s*\)\))(.*?)\s*$/ && $current_user) {
+      push @{$current_user->{ssh_keys}}, $1;
+    }
+  }
+
+  return $data;
+}
+
+# Function to generate YAML
+sub to_yaml {
+  my ($data) = @_;
+  my $yaml = "---\nusers:\n";
+
+  foreach my $user (@{$data->{users}}) {
+    $yaml .= "  - name: " . yaml_escape($user->{name}) . "\n";
+    $yaml .= "    shell: " . yaml_escape($user->{shell}) . "\n";
+    $yaml .= "    ssh_keys:\n      - (( append )) \n";
+    foreach my $key (@{$user->{ssh_keys}}) {
+      # Properly indent and escape multi-line keys
+      $key =~ s/\n/\n      /g;
+      $yaml .= "      - " . yaml_escape($key) . "\n";
+    }
+  }
+
+  return $yaml;
+}
+
+# Modified add_users to handle multiple sources for same username
+sub add_users {
+  my ($existing_data, $new_users) = @_;
+
+  foreach my $new_user (@{$new_users->{users}}) {
+    my ($existing_user) = grep { $_->{name} eq $new_user->{name} } @{$existing_data->{users}};
+
+    if ($existing_user) {
+      # Update existing user's keys
+      my %seen_keys = map { $_ => 1 } @{$existing_user->{ssh_keys}};
+      foreach my $key (@{$new_user->{ssh_keys}}) {
+        push @{$existing_user->{ssh_keys}}, $key unless $seen_keys{$key};
+        $seen_keys{$key} = 1;
+      }
+    } else {
+      # Add new user
+      push @{$existing_data->{users}}, $new_user;
+    }
+  }
+
+  return $existing_data;
+}
+
+# Function to remove users from existing YAML
+sub remove_users {
+  my ($existing_data, $usernames) = @_;
+
+  my %remove = map { $_ => 1 } @$usernames;
+  @{$existing_data->{users}} = grep { !$remove{$_->{name}} } @{$existing_data->{users}};
+
+  return $existing_data;
+}
+
+END {
+  cleanup_temp_files();
+}
+
+# Main execution starts here
+eval {
+  # Check if we have enough arguments
+  unless (@ARGV >= 2) {
+    print_status('error', "Usage: $0 <add|a|remove|r> <[github|gitlab/]username_1> [username_2 ...]");
+    print_status('info', "Examples:\n  $0 add dennisjbell gitlab/wayneeseguin github/krutten");
+    exit 1;
+  }
+
+  # Get and validate action
+  my $action = shift @ARGV;
+  unless (exists $CONFIG{VALID_ACTIONS}{$action}) {
+    print_status('error', "Invalid action. Must be one of: " . join(", ", sort keys %{$CONFIG{VALID_ACTIONS}}));
+    exit 1;
+  }
+  $action = $CONFIG{VALID_ACTIONS}{$action};
+
+  # Validate input
+  if (@ARGV > $CONFIG{MAX_USERNAMES}) {
+    print_status('error', "Too many usernames (max $CONFIG{MAX_USERNAMES})");
+    exit 1;
+  }
+
+  # Initial checks
+  check_network();
+  log_message('info', "Script started with action '$action' for " . scalar(@ARGV) . " usernames");
+
+  # Process usernames with sources
+  my %processed_users;
+  my $data = {
+    users => []
+  };
+
+  if ($action eq 'add') {
+    foreach my $username_spec (@ARGV) {
+      $processed++;
+
+      eval {
+        my $info = parse_username_with_source($username_spec);
+        my $username = $info->{username};
+        my $source = $info->{source};
+
+        print_status('info',
+          sprintf("Processing %s from %s %s",
+            $username,
+            $source,
+            format_progress_bar($processed, scalar(@ARGV))
+          )
+        );
+
+        check_memory_usage();
+
+        unless (check_rate_limit()) {
+          log_message('warning', "Rate limit reached, waiting...");
+          sleep 1;
+          next;
+        }
+
+        consume_token();
+
+        # Validate username format
+        validate_username($username);
+
+        # Fetch SSH keys
+        my $content = fetch_https_content($source, $username);
+
+        # Process keys in streaming fashion
+        my @valid_keys;
+        foreach my $key (split /\n/, ensure_utf8($content)) {
+          next unless $key =~ /\S/;
+          if ($key =~ /^(ssh-rsa|ssh-dss|ssh-ed25519|ecdsa-sha2-nistp256|ecdsa-sha2-nistp384|ecdsa-sha2-nistp521)\s+[A-Za-z0-9+\/]+[=]{0,3}(\s+.+)?$/) {
+            push @valid_keys, $key;
+          }
+        }
+
+        if (@valid_keys) {
+          # If we already have a user entry, merge the keys
+          my ($existing_user) = grep { $_->{name} eq $username } @{$data->{users}};
+
+          if ($existing_user) {
+            my %seen_keys = map { $_ => 1 } @{$existing_user->{ssh_keys}};
+            foreach my $key (@valid_keys) {
+              push @{$existing_user->{ssh_keys}}, $key unless $seen_keys{$key};
+              $seen_keys{$key} = 1;
+            }
+          } else {
+            push @{$data->{users}}, {
+              name     => $username,
+              shell    => '/bin/bash',
+              ssh_keys => \@valid_keys
+            };
+          }
+
+          $successful++;
+          print_status('success', "Found " . scalar(@valid_keys) . " valid keys for $username from $source");
+        } else {
+          die "No valid SSH keys found\n";
+        }
+      };
+      if ($@) {
+        $failed++;
+        my $error = $@;
+        chomp $error;
+        print_status('error', "Failed processing $username_spec: $error");
+      }
+
+      sleep 1;
+    }
+  }
+
+  # Read existing YAML
+  my $existing_data = parse_yaml($CONFIG{OUTPUT_FILE});
+
+  # Apply action
+  if ($action eq 'add') {
+    $existing_data = add_users($existing_data, $data);
+    print_status('success', "Added/updated users in YAML");
+  } elsif ($action eq 'remove') {
+    # For remove action, we just need the usernames without source
+    my @usernames = map {
+      my $info = parse_username_with_source($_);
+      $info->{username};
+    } @ARGV;
+    $existing_data = remove_users($existing_data, \@usernames);
+    print_status('success', "Removed specified users from YAML");
+  }
+
+  # Generate YAML output if we have any successful users
+  if (@{$existing_data->{users}}) {
+    print_status('info', "\nGenerating YAML file...");
+
+    eval {
+      # Generate YAML and write to file
+      my $yaml_content = to_yaml($existing_data);
+
+      make_path(File::Basename::dirname($CONFIG{OUTPUT_FILE}))
+        unless -d File::Basename::dirname($CONFIG{OUTPUT_FILE});
+
+      safe_write_file($CONFIG{OUTPUT_FILE}, $yaml_content);
+
+      print_status('success', "YAML file '$CONFIG{OUTPUT_FILE}' has been updated successfully");
+      print_status('success', sprintf("File permissions set to %04o for security",
+                                    $CONFIG{FILE_PERMISSIONS}));
+    };
+    if ($@) {
+      print_status('error', "Failed to write YAML file: $@");
+      exit 1;
+    }
+  } else {
+    print_status('warning', "No users remain in YAML file");
+  }
+
+  # Print summary
+  print("\n=== Summary ===\n");
+  print_status('info', "Action performed: $action");
+  if ($action eq 'add') {
+    print_status('info', "Total users processed: $processed");
+    print_status('success', "Successful: $successful");
+    print_status('error', "Failed: $failed");
+  } else {
+    print_status('info', "Users removed: " . scalar(@ARGV));
+  }
+
+  # Final memory usage check
+  my $final_memory = check_memory_usage();
+  log_message('info', "Final memory usage: $final_memory MB") if $final_memory;
+};
+
+if ($@) {
+  log_message('error', "Script failed: $@");
+  cleanup_temp_files();
+  die $@;
+}
+
+log_message('info', "Successfully updated users ops file: ${CONFIG{OUTPUT_FILE}}");
+
+__END__
+
+=head1 NAME
+
+users-from - Genesis Addon to manage adding/removeing users from GitHub/GitLab SSH keys in ./ops/users.yml
+
+=head1 SYNOPSIS
+
+genesis do users-from <add|a|remove|r> [github|gitlab/]username_1 [[github|gitlab/]username_2 ...]
+
+=head1 DESCRIPTION
+
+Manages SSH keys configuration by either adding or removing specified users:
+  add|a    - Fetches and adds/updates SSH keys for specified users
+  remove|r - Removes specified users from the configuration
+
+Users can be specified with an optional source prefix (github/ or gitlab/).
+If no prefix is given, github is used as the default source.
+
+Examples:
+  genesis do users-from add dennisjbell gitlab/wayneeseguin github/krutten
+  genesis do users-from remove gitlab/wayneeseguin
+
+Each user is expected to have added SSH keys to their account, which can be
+found by browsing to:
+  - GitHub users: https://github.com/<username>.keys
+  - GitLab users: https://gitlab.com/<username>.keys
+
+=head1 DEPENDENCIES
+
+This script is written to use Core Perl modules only by intent/Design.
+TODO: Switch to using Genesis libraries for logging and error handling.
+
+=head1 AUTHOR
+
+Wayne E. Seguin <wayneeseguin@gmail.com> <wayneeseguin@fivetwenty.io>
+
+=cut
