@@ -3,21 +3,22 @@ set -eu
 
 if [[ $GENESIS_DEPLOY_RC == 0 ]]; then
   declare -a ips
-  ips=( $(bosh vms --json | jq -r '.Tables[0].Rows[0].ips') )
+  ips=($(bosh vms --json | jq -r '.Tables[0].Rows[0].ips'))
 
-      echo; echo;
+  echo
+  echo
   describe "#M{$GENESIS_ENVIRONMENT} Jumpbox deployed!"
-      echo
-      echo "For details about the deployment, run"
-      echo
-  describe "  #G{$GENESIS_CALL info $GENESIS_ENVIRONMENT}"
-      echo
-      echo "To access the jumpbox over SSH:"
-      echo
-  describe "  #G{$GENESIS_CALL do $GENESIS_ENVIRONMENT -- ssh}"
-      echo
-      echo "or:"
-      echo
-  describe "  #W{ssh ${ips[0]}}"
-      echo
+  echo
+  echo "For details about the deployment, run"
+  echo
+  describe "  #G{$GENESIS_CALL_ENV info}"
+  echo
+  echo "To access the jumpbox over SSH:"
+  echo
+  describe "  #G{$GENESIS_CALL_ENV do ssh} #yi{[-l <user>] [-i <path/to/identity>]}"
+  echo
+  echo "or:"
+  echo
+  describe "  #W{ssh ${ips[0]}} #yi{[-l <user>] [-i <path/to/identity>]}"
+  echo
 fi

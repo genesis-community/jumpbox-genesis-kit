@@ -49,6 +49,9 @@ sub perform {
     count_nouns(scalar(@invalid), 'feature', suppress_count => 1),
     join(', ', @invalid)
   ) if @invalid;
+
+  # TODO: Make the users file dynamic, and add exodus data for capturing what
+  #       user details were deployed.
  
   $blueprint->add_files("manifests/users.ym")
     if $blueprint->env->lookup('params.users_file');
