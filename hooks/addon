@@ -4,14 +4,15 @@ set -u
 #Version check
 min_version="2.7.0"
 genesis_version="$(genesis -v 2>&1 | grep '^Genesis v' | sed -e 's/Genesis v\(.*\) (.*$/\1/')"
-if ! [[ "$genesis_version" =~ -dev$ ]] && ! new_enough "$genesis_version" "$min_version" ; then
+if ! [[ "$genesis_version" =~ -dev$ ]] && ! new_enough "$genesis_version" "$min_version"; then
   describe >&2 "" "#R{[ERROR]} This kit needs Genesis $min_version.  Please upgrade before continuing" ""
   exit 1
 fi
 set -e
 
 list() {
-  describe "$(cat <<EOF
+  describe "$(
+    cat <<EOF
 The following addons are defined for the #C{$GENESIS_KIT_ID} kit:
 
   #G{inventory}                   Take an inventory of software installed on the
@@ -22,7 +23,7 @@ The following addons are defined for the #C{$GENESIS_KIT_ID} kit:
   #G{who}                         See who is logged into the jumpbox, via SSH.
                               (requires the ability to login via SSH)
 
-  #G{users-from}                  Manage users from GitHub/GitLab SSH keys in ./ops/users.yml
+  #G{users}                  Manage users from GitHub/GitLab SSH keys in ./ops/users.yml
 
 If the 'openvpn' feature has been enabled, the following addons are also
 available:
@@ -72,21 +73,21 @@ issue() {
 
   secret="${GENESIS_SECRETS_BASE}openvpn/certs/users/$email"
   safe x509 issue --signed-by "${GENESIS_SECRETS_BASE}openvpn/certs/ca" \
-                  --name "$email" \
-                  -u digital_signature \
-                  -u key_encipherment \
-                  -u client_auth \
-                  --ttl "${CERT_TTL:-180d}" \
-                  "$secret"
+    --name "$email" \
+    -u digital_signature \
+    -u key_encipherment \
+    -u client_auth \
+    --ttl "${CERT_TTL:-180d}" \
+    "$secret"
 
   if [[ ${2:-x} != "--quiet" ]]; then
     safe x509 show "$secret"
-      echo "To get the certificate:"
+    echo "To get the certificate:"
     describe "  #C{safe read $secret:certificate}"
-      echo
-      echo "To get the private key:"
+    echo
+    echo "To get the private key:"
     describe "  #Y{safe read $secret:key}"
-      echo
+    echo
   fi
 }
 
@@ -133,28 +134,28 @@ reissue() {
 
 declare -a ips
 generate_ip_list() {
-  ips=( "$(bosh vms --json | jq -r '.Tables[0].Rows[0].ips')" )
+  ips=("$(bosh vms --json | jq -r '.Tables[0].Rows[0].ips')")
 }
 
 generate_vpn_config() {
-  if [[ "${#@}" == '0' ]] || [[ "${#@}" == '1' && "$1" == '-f' ]] ; then
+  if [[ "${#@}" == '0' ]] || [[ "${#@}" == '1' && "$1" == '-f' ]]; then
     bail "USAGE: genesis do <env> generate-vpn-config [-f] user@email.addr.ess"
     exit 1
   fi
 
   regen=''
-  if [[ "$1" == "-f" ]] ; then
+  if [[ "$1" == "-f" ]]; then
     regen='1'
     shift
   fi
   email="$1"
 
-  generate_ip_list;
-  if ! safe --quiet check "${GENESIS_SECRETS_BASE}openvpn/certs/users/$email" || [[ -n $regen ]] ; then
+  generate_ip_list
+  if ! safe --quiet check "${GENESIS_SECRETS_BASE}openvpn/certs/users/$email" || [[ -n $regen ]]; then
     echo >&2 "Generating new openvpn client certificate for $email"
     issue "$email" --quiet
   fi
-  if [[ $(lookup params.vpn_external_ip  "${ips[0]}") == null ]]; then
+  if [[ $(lookup params.vpn_external_ip "${ips[0]}") == null ]]; then
     echo >&2 "Failed to get VPN External IP from BOSH or Params - check your connection to BOSH or params file"
     exit 1
   fi
@@ -197,8 +198,10 @@ list)
 certs)
   n=0
   for secret in $(safe paths "${GENESIS_SECRETS_BASE}openvpn/certs/users" 2>/dev/null); do
-    safe x509 show "$secret"; echo ; echo
-    n=$(( n + 1 ))
+    safe x509 show "$secret"
+    echo
+    echo
+    n=$((n + 1))
   done
   echo "$n VPN user certificates found"
   ;;
@@ -242,17 +245,17 @@ inventory)
   ;;
 
 ssh)
-  generate_ip_list;
+  generate_ip_list
   exec ssh "${ips[0]}" "$@"
   ;;
 
 who)
-  generate_ip_list;
+  generate_ip_list
   exec ssh "${ips[0]}" -- who
   ;;
 
-users-from)
-  exec hooks/users-from "$@"
+users)
+  exec hooks/users "$@"
   ;;
 
 *)
