@@ -8,6 +8,24 @@ The jumpbox contains a multitude of utilities useful for managing
 and interacting with BOSH, Cloud Foundry, Concourse, and other
 related components.
 
+## Table of Contents
+
+- [Base Parameters](#base-parameters)
+- [Deployment Parameters](#deployment-parameters)
+- [Cloud Configuration](#cloud-configuration)
+- [Available Features](#available-features)
+- [User Management](#user-management)
+- [IaaS Configuration](#iaas-support)
+  - [AWS Configuration](#aws-configuration)
+  - [vSphere Configuration](#vsphere-configuration)
+  - [OpenStack Configuration](#openstack-configuration)
+  - [STACKIT Configuration](#stackit-configuration)
+- [Available Addons](#available-addons)
+- [Examples](#examples)
+- [Troubleshooting](#troubleshooting)
+- [Caveats](#caveats)
+- [History](#history)
+
 # Base Parameters
 
 - `hostname` - Override the jumpbox hostname.  By default, the
@@ -163,38 +181,271 @@ params:
 
   - `vpn_extra_client_configs` - List of additional OpenVPN client configuration options.
 
+# User Management
+
+The Jumpbox Genesis Kit provides flexible options for managing users.
+
+## Defining Users in Deployment
+
+Users can be defined in two ways:
+
+1. **Directly in the environment file** using the `users` parameter
+2. **In a separate file** using the `users_file` parameter
+3. **A combination of both** using the append operator
+
+### Directly in Environment File
+
+```yaml
+params:
+  users:
+    - name: jsmith
+      shell: /bin/bash
+      ssh_keys:
+        - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ...
+    - name: auser
+      shell: /bin/zsh
+      ssh_keys:
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI...
+```
+
+### Using a Separate Users File
+
+1. Create a dedicated users file (e.g., `users.yml`):
+
+```yaml
+users:
+  - name: jsmith
+    shell: /bin/bash
+    ssh_keys:
+      - (( append ))
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ...
+  - name: auser
+    shell: /bin/zsh
+    ssh_keys:
+      - (( append ))
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI...
+```
+
+2. Reference this file in your environment:
+
+```yaml
+params:
+  users_file: users.yml
+```
+
+### Using Both Approaches Together
+
+```yaml
+params:
+  users_file: users.yml
+  users:
+    - (( append ))
+    - name: additional_user
+      shell: /bin/bash
+      ssh_keys:
+        - ssh-rsa AAAAB3Nza...
+```
+
+## Managing Users with the `users` Addon
+
+The Jumpbox Genesis Kit provides a powerful `users` addon for dynamically 
+managing users and their SSH keys from various sources.
+
+### Adding Users
+
+```bash
+# Add a user's SSH keys from GitHub (default source)
+genesis do my-env -- users add username
+
+# Add a user's SSH keys from GitLab
+genesis do my-env -- users add gitlab/username
+
+# Add keys from a local public key file
+genesis do my-env -- users add /path/to/username.pub
+
+# Add keys from a directory containing public key files
+genesis do my-env -- users add /path/to/keys/directory/
+```
+
+### Removing Users
+
+```bash
+# Remove a user
+genesis do my-env -- users remove username
+```
+
+### Key Source Options
+
+- **GitHub**: Default source, fetches from `https://github.com/username.keys`
+- **GitLab**: Fetches from `https://gitlab.com/username.keys`
+- **Local .pub file**: Reads from a local public key file (username derived from filename)
+- **Directory**: Processes all .pub files in a directory
+
+The `users` addon creates and maintains an `ops/users.yml` file that is automatically
+used in your deployment.
+
+For more details on user management, see the [User Management documentation](docs/user-management.md).
+
+# IaaS Support
+
+This kit supports the following Infrastructure-as-a-Service providers:
+
+- Amazon Web Services (AWS)
+- VMware vSphere
+- OpenStack
+- STACKIT
+
+## STACKIT Configuration
+
+STACKIT is supported as an IaaS provider, with configuration similar to OpenStack. When
+deploying to STACKIT, keep in mind that STACKIT has a 1:1 correspondence of networks to
+subnets, unlike OpenStack which may have a single overarching network with multiple subnets.
+
+### Cloud Config Requirements
+
+For STACKIT deployments, you need a cloud config with appropriate VM types, disk types,
+and network configuration:
+
+```yaml
+# VM types
+vm_types:
+- name: jumpbox
+  cloud_properties:
+    instance_type: m1.medium
+    security_groups: [default, jumpbox]
+
+# Disk types
+disk_types:
+- name: jumpbox
+  disk_size: 50_000
+  cloud_properties:
+    type: storage_standard
+
+# Networks
+networks:
+- name: jumpbox
+  type: manual
+  subnets:
+  - range: 10.10.10.0/24
+    gateway: 10.10.10.1
+    dns: [8.8.8.8]
+    cloud_properties:
+      net_id: YOUR_NETWORK_ID
+      security_groups: [default, jumpbox]
+```
+
+### Instance Types
+
+The default values for STACKIT are:
+
+- Instance types: 
+  - `m1.small` (1 vCPU, 2GB RAM)
+  - `m1.medium` (2 vCPU, 4GB RAM - recommended for jumpbox)
+  - `m1.large` (4 vCPU, 8GB RAM)
+
+### Storage Types
+
+- Default: `storage_standard`
+- High-performance: `storage_highiops`
+
+### Network Configuration
+
+Network configuration requires both `net_id` and `security_groups`:
+
+```yaml
+cloud_properties:
+  net_id: YOUR_NETWORK_ID
+  security_groups: ['default']
+```
+
+### Security Group Requirements
+
+At minimum, your security groups should allow:
+- SSH access (port 22) for management
+- HTTPS access (port 443) if using OpenVPN
+
+For detailed STACKIT configuration, see the [STACKIT Configuration Guide](docs/iaas-configurations/stackit.md).
+
 # Available Addons
 
-  - `inventory` - Run the inventory errand against the deployment.
+## Core Addons
 
-  - `ssh` - SSH into the jumpbox (interactively).
+- `inventory` - Run the inventory errand against the deployment.
+  ```
+  genesis do my-env -- inventory
+  ```
 
-  - `who` - SSH into the jumpbox and determine who is logged in.
+- `ssh` - SSH into the jumpbox interactively.
+  ```
+  genesis do my-env -- ssh
+  ```
+
+- `who` - SSH into the jumpbox and determine who is logged in.
+  ```
+  genesis do my-env -- who
+  ```
+
+- `users` - Manage user accounts and SSH keys from various sources.
+  ```
+  # Add users
+  genesis do my-env -- users add github/username
+  genesis do my-env -- users add gitlab/username
+  genesis do my-env -- users add /path/to/key.pub
+  genesis do my-env -- users add /path/to/keys/dir/
+  
+  # Remove users
+  genesis do my-env -- users remove username
+  ```
+
+## OpenVPN Addons
 
 If the `openvpn` feature is enabled, the following addons are also available:
 
-  - `certs` - List all the X.509 VPN certificates for the users registered on 
-    this jumpbox.
+- `certs` - List all the X.509 VPN certificates for the users registered on 
+  this jumpbox.
+  ```
+  genesis do my-env -- certs
+  ```
 
-  - `issue-cert <user>` - Issue an X.509 certificate to a user, so that they
-    can connect and authenticate to the VPN.
+- `issue-cert <user>` - Issue an X.509 certificate to a user, so that they
+  can connect and authenticate to the VPN.
+  ```
+  genesis do my-env -- issue-cert username
+  ```
 
-  - `revoke-cert <user>` - Revoke an issued X.509 VPN certificate.
+- `revoke-cert <user>` - Revoke an issued X.509 VPN certificate.
+  ```
+  genesis do my-env -- revoke-cert username
+  ```
 
-  - `renew-cert <user>` - Renew the lifetime of an existing X.509 VPN
-    certificate, without changing the key that the user has.
+- `renew-cert <user>` - Renew the lifetime of an existing X.509 VPN
+  certificate, without changing the key that the user has.
+  ```
+  genesis do my-env -- renew-cert username
+  ```
 
-  - `renew-all-certs` - Renew the lifetime of an existing X.509 VPN
-    certificate, without changing the key that the user has.
+- `renew-all-certs` - Renew the lifetime of all existing X.509 VPN
+  certificates, without changing the keys.
+  ```
+  genesis do my-env -- renew-all-certs
+  ```
 
-  - `reissue-cert <user>` - Reissue an X.509 VPN certificate, and
-    generate a new key in the process.  This is useful if, for
-    example, a key has been lost or compromised.  The old
-    certificate will be revoked.
+- `reissue-cert <user>` - Reissue an X.509 VPN certificate, and
+  generate a new key in the process. This is useful if, for
+  example, a key has been lost or compromised. The old
+  certificate will be revoked.
+  ```
+  genesis do my-env -- reissue-cert username
+  ```
   
-  - `generate-vpn-config <user>` - Generate a client certificate
-    (if missing) and a new (or updated) openvpn config file for a 
-    given user
+- `generate-vpn-config <user>` - Generate a client certificate
+  (if missing) and a new (or updated) openvpn config file for a 
+  given user.
+  ```
+  genesis do my-env -- generate-vpn-config username
+  ```
+
+For detailed information on addon commands, see the [Addon Commands documentation](docs/addons.md).
 
 # Examples
 
@@ -215,26 +466,49 @@ params:
   jumpbox_vm_type:   medium
 ```
 
-# IaaS Support
+# Troubleshooting
 
-This kit supports the following Infrastructure-as-a-Service providers:
+## Common Issues
 
-- Amazon Web Services (AWS)
-- VMware vSphere
-- OpenStack
-- STACKIT
+### Deployment Fails with User-Related Errors
 
-## STACKIT Configuration
+If your deployment fails with errors related to users:
 
-STACKIT is supported as an IaaS provider, with configuration similar to OpenStack. When
-deploying to STACKIT, keep in mind that STACKIT has a 1:1 correspondence of networks to
-subnets, unlike OpenStack which may have a single overarching network.
+1. Verify that your `users` parameter or `users_file` is correctly formatted
+2. Check for duplicate usernames
+3. Ensure SSH keys are valid and properly formatted
 
-The default values for STACKIT are:
+### OpenVPN Connection Issues
 
-- Instance types: `m1.small` (small), `m1.medium` (medium), `m1.large` (large)
-- Storage type: `storage_standard`
-- Network configuration requires `net_id` and `security_groups` (default: `['default']`)
+If users cannot connect to the VPN:
+
+1. Verify that the OpenVPN service is running on the jumpbox
+2. Check that security groups allow traffic on port 443 (or your configured VPN port)
+3. Ensure users have valid certificates
+4. Review the OpenVPN server logs for errors
+
+### SSH Access Issues
+
+If users cannot SSH into the jumpbox:
+
+1. Verify that their SSH keys are correctly added to the deployment
+2. Check that security groups allow SSH access (port 22)
+3. Ensure network connectivity to the jumpbox
+
+## Resolving BOSH Deployment Lock Issues
+
+If your jumpbox deployment is locked and cannot be updated:
+
+1. Check if any users are currently logged in:
+   ```
+   genesis do my-env -- who
+   ```
+
+2. If necessary, notify users and wait for them to log out before
+   attempting the deployment again. The jumpbox BOSH release does
+   not forcibly terminate user sessions during updates.
+
+For more troubleshooting guidance, see the [Troubleshooting Guide](docs/troubleshooting.md).
 
 # Caveats
 
