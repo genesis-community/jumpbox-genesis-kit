@@ -40,6 +40,10 @@ sub perform {
 							'net_id' => $self->network_reference('id'),
 							'security_groups' => ['default']
 						},
+						stackit => {
+							'net_id' => $self->network_reference('id'),
+							'security_groups' => ['default']
+						},
 					},
 				},
 			)
@@ -48,6 +52,17 @@ sub perform {
 			$self->vm_type_definition('jumpbox',
 				cloud_properties_for_iaas => {
 					openstack => {
+						'instance_type' => $self->for_scale({
+							small => 'm1.small',
+							medium => 'm1.medium',
+							large => 'm1.large'
+						}, 'm1.small'),
+						'boot_from_volume' => $self->TRUE,
+						'root_disk' => {
+							'size' => 20 # in gigabytes
+						},
+					},
+					stackit => {
 						'instance_type' => $self->for_scale({
 							small => 'm1.small',
 							medium => 'm1.medium',
@@ -72,6 +87,9 @@ sub perform {
 				},
 				cloud_properties_for_iaas => {
 					openstack => {
+						'type' => 'storage_standard',
+					},
+					stackit => {
 						'type' => 'storage_standard',
 					},
 				},

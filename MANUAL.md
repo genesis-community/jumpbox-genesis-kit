@@ -215,6 +215,27 @@ params:
   jumpbox_vm_type:   medium
 ```
 
+# IaaS Support
+
+This kit supports the following Infrastructure-as-a-Service providers:
+
+- Amazon Web Services (AWS)
+- VMware vSphere
+- OpenStack
+- STACKIT
+
+## STACKIT Configuration
+
+STACKIT is supported as an IaaS provider, with configuration similar to OpenStack. When
+deploying to STACKIT, keep in mind that STACKIT has a 1:1 correspondence of networks to
+subnets, unlike OpenStack which may have a single overarching network.
+
+The default values for STACKIT are:
+
+- Instance types: `m1.small` (small), `m1.medium` (medium), `m1.large` (large)
+- Storage type: `storage_standard`
+- Network configuration requires `net_id` and `security_groups` (default: `['default']`)
+
 # Caveats
 
 Jumpbox deployments cannot be updated by BOSH while people are
