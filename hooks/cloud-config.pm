@@ -44,6 +44,9 @@ sub perform {
 							'net_id' => $self->network_reference('id'),
 							'security_groups' => ['default']
 						},
+						aws => {
+							'subnet' => $self->network_reference('id')
+						},
 					},
 				},
 			)
@@ -73,6 +76,25 @@ sub perform {
 							'size' => 20 # in gigabytes
 						},
 					},
+					aws => {
+						'instance_type' => $self->for_scale({
+							small => 't3.small',
+							medium => 't3.medium',
+							large => 'm6i.xlarge'
+						}, 't3.small'),
+						'ephemeral_disk' => {
+							'size' => $self->for_scale({
+								small => 4096,
+								medium => 8192,
+								large => 16384
+							}, 4096),
+							'type' => 'gp3',
+							'encrypted' => $self->TRUE
+						},
+						'metadata_options' => {
+							'http_tokens' => 'required'
+						}
+					},
 				},
 			),
 		],
@@ -91,6 +113,10 @@ sub perform {
 					},
 					stackit => {
 						'type' => 'storage_standard',
+					},
+					aws => {
+						'type' => 'gp3',
+						'encrypted' => $self->TRUE
 					},
 				},
 			),
