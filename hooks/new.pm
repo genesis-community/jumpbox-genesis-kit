@@ -151,7 +151,7 @@ sub perform {
 	# Offer environment editor
 	run({ interactive => 1 }, 'offer_environment_editor');
 
-	return $self->done(1);
+	return $self->done();
 }
 
 # Convert CIDR notation to subnet mask

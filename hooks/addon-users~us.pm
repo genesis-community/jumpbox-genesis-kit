@@ -229,7 +229,7 @@ sub perform {
   # Clean up
   $self->cleanup_temp_files();
 
-  return 1;
+	return $self->done();
 }
 
 # Core processing functions

@@ -114,7 +114,7 @@ $client_key
 </key>
 EOF
 
-	return 1;
+	return $self->done();
 }
 
 sub issue_cert {

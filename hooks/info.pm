@@ -33,7 +33,7 @@ sub perform {
 
 	# TODO: List users and expiry of certs for openvpn users
 
-	return $self->done(1);
+	return $self->done();
 }
 
 1;

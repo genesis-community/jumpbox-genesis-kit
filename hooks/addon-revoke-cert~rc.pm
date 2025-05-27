@@ -53,7 +53,7 @@ sub perform {
 
 	info("revoked #Y{%s} VPN user certificate",$email);
 
-	return 1;
+	return $self->done();
 }
 
 sub require_vpn {

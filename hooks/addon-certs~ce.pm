@@ -44,7 +44,7 @@ sub perform {
 
 	info "$n VPN user certificates found\n";
 
-	return 1;
+	return $self->done();
 }
 
 sub require_vpn {

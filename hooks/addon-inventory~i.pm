@@ -34,7 +34,7 @@ sub perform {
 		bail("Failed to run the inventory errand: $err");
 	}
 
-	return 1;
+	return $self->done();
 }
 
 1;

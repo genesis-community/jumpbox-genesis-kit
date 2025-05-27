@@ -45,7 +45,7 @@ sub perform {
 	run('safe x509 reissue --signed-by "$1" "$2"', $ca, $secret);
 	run('safe x509 show "$1"', $secret);
 
-	return 1;
+	return $self->done();
 }
 
 sub require_vpn {

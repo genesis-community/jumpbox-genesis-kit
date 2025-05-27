@@ -37,7 +37,7 @@ sub perform {
 	exec('ssh', $ips[0], @args);
 
 	# We won't reach here if exec is successful
-	return 1;
+	return $self->done();
 }
 
 1;
