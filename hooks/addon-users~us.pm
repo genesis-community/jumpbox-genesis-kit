@@ -8,6 +8,8 @@ use v5.20; # Genesis min perl version is 5.20
 
 use parent qw(Genesis::Hook::Addon);
 use lib $ENV{GENESIS_LIB} // "$ENV{HOME}/.genesis/lib";
+use lib File::Spec->catdir(dirname(__FILE__), 'lib');
+use VaultUserManager;
 
 use Genesis qw/run bail info error warning prompt_for_boolean/;
 use File::Basename;
@@ -80,8 +82,9 @@ sub init {
 sub cmd_details {
   return
   "Manage users from GitHub/GitLab SSH keys in ./ops/users.yml\n".
-  "Usage: genesis do <env> -- users <add|a|remove|r> <[github|gitlab/]username_1> [username_2 ...]\n".
+  "Usage: genesis do <env> -- users <init|add|a|remove|r> <[github|gitlab/]username_1> [username_2 ...]\n".
   "Examples:\n".
+  "  genesis do <env> -- users init                        # Sync users from Vault config to environment\n".
   "  genesis do <env> -- users add dennisjbell gitlab/wayneeseguin github/krutten\n".
   "  genesis do <env> -- users remove jsmith\n".
   "  genesis do <env> -- users add ./keys/jsmith.pub       # Local pubkey file\n".
@@ -100,19 +103,57 @@ sub perform {
 
   # Check if we have enough arguments
   unless (scalar(@{$self->{args}}) >= 1) {
-    $self->print_status('error', "Usage: genesis do <env> -- users <add|a|remove|r> <[github|gitlab/]username_1> [username_2 ...]");
-    $self->print_status('info', "Examples:\n  genesis do <env> -- users add dennisjbell gitlab/wayneeseguin github/krutten");
+    $self->print_status('error', "Usage: genesis do <env> -- users <init|add|a|remove|r> <[github|gitlab/]username_1> [username_2 ...]");
+    $self->print_status('info', "Examples:\n  genesis do <env> -- users init\n  genesis do <env> -- users add dennisjbell gitlab/wayneeseguin github/krutten");
     return 0;
   }
 
-  # Get and validate action
+  # Get action
   my $action = shift @{$self->{args}};
+  
+  # Handle init command
+  if ($action eq 'init') {
+    return $self->handle_init_command();
+  }
+  
+  # Validate regular action
   unless (exists $self->{config}{VALID_ACTIONS}{$action}) {
-    $self->print_status('error', "Invalid action. Must be one of: " . join(", ", sort keys %{$self->{config}{VALID_ACTIONS}}));
+    $self->print_status('error', "Invalid action. Must be one of: init, " . join(", ", sort keys %{$self->{config}{VALID_ACTIONS}}));
     return 0;
   }
   $action = $self->{config}{VALID_ACTIONS}{$action};
 
+  # Check if no usernames provided and try to load from Vault
+  if (scalar(@{$self->{args}}) == 0 && $action eq 'add') {
+    $self->print_status('info', "No usernames provided, checking Vault for users...");
+    
+    my $vault = VaultUserManager->new();
+    my $vault_users = $vault->get_all_users();
+    
+    if (@$vault_users) {
+      $self->print_status('info', "Found " . scalar(@$vault_users) . " users in Vault, using those...");
+      
+      # Convert Vault users to arguments format
+      foreach my $user (@$vault_users) {
+        foreach my $key_spec (@{$user->{ssh_keys} || []}) {
+          if ($key_spec =~ /^(github|gitlab):(.+)$/) {
+            push @{$self->{args}}, "$1/$2";
+          } elsif ($key_spec =~ /^file:(.+)$/) {
+            push @{$self->{args}}, $1;
+          }
+        }
+      }
+      
+      if (scalar(@{$self->{args}}) == 0) {
+        $self->print_status('warning', "Vault users found but no SSH key sources to process");
+        return 0;
+      }
+    } else {
+      $self->print_status('error', "No usernames provided and no users found in Vault");
+      return 0;
+    }
+  }
+  
   # Validate input
   if (scalar(@{$self->{args}}) > $self->{config}{MAX_USERNAMES}) {
     $self->print_status('error', "Too many usernames (max $self->{config}{MAX_USERNAMES})");
@@ -751,6 +792,114 @@ sub format_progress_bar {
   "=" x $filled,
   " " x ($width - $filled),
   $progress * 100;
+}
+
+sub handle_init_command {
+  my ($self) = @_;
+  
+  $self->print_status('info', "Initializing users from Vault config...");
+  
+  # Create VaultUserManager instance
+  my $vault = VaultUserManager->new();
+  
+  # Try to find config path across different environment types
+  my $config_env_type = $vault->find_config_path();
+  
+  unless ($config_env_type) {
+    $self->print_status('warning', "No users found in any Vault config path");
+    $self->print_status('info', "Tried paths for environment types: mgmt, ocf");
+    $self->print_status('info', "Checking environment Vault path for existing users...");
+    
+    # Check if we should look for users in environment path
+    my $env_users = $vault->get_all_users();
+    if (@$env_users) {
+      $self->print_status('info', "Found " . scalar(@$env_users) . " users in environment Vault path");
+    } else {
+      $self->print_status('info', "No users found in environment Vault path either");
+    }
+    return 1;
+  }
+  
+  # Set the found environment type
+  if ($config_env_type ne $vault->env_type()) {
+    $self->print_status('info', "Found config in '$config_env_type' environment type (current: " . $vault->env_type() . ")");
+    $vault->env_type($config_env_type);
+  }
+  
+  # Sync from config to environment
+  $self->print_status('info', "Syncing users from config to environment...");
+  my $success = $vault->sync_config_to_environment();
+  
+  unless ($success) {
+    $self->print_status('error', "Failed to sync users from config to environment");
+    return 0;
+  }
+  
+  # Get all users from environment path after sync
+  my $users = $vault->get_all_users();
+  $self->print_status('info', "Synced " . scalar(@$users) . " users to environment Vault");
+  
+  # Now generate ops/users.yml from the synced users
+  $self->print_status('info', "Generating ops/users.yml from Vault users...");
+  
+  # Process each user and fetch their SSH keys
+  my $data = { users => [] };
+  my $processed = 0;
+  my $failed = 0;
+  
+  foreach my $user (@$users) {
+    $processed++;
+    my $user_data = {
+      name => $user->{name},
+      shell => $user->{shell} || '/bin/bash',
+      ssh_keys => ['(( append ))']
+    };
+    
+    # Process SSH keys
+    foreach my $key_spec (@{$user->{ssh_keys} || []}) {
+      if ($key_spec =~ /^ssh-/) {
+        # Direct SSH key
+        push @{$user_data->{ssh_keys}}, $key_spec;
+      } elsif ($key_spec =~ /^(github|gitlab):(.+)$/) {
+        # Fetch from GitHub/GitLab
+        my ($source, $username) = ($1, $2);
+        $self->print_status('info', "Fetching SSH keys for $username from $source...");
+        
+        my $keys = $self->fetch_keys($source, $username);
+        if ($keys && @$keys) {
+          push @{$user_data->{ssh_keys}}, @$keys;
+          $self->print_status('success', "Added " . scalar(@$keys) . " keys for $username");
+        } else {
+          $self->print_status('warning', "Failed to fetch keys for $username from $source");
+          $failed++;
+        }
+      } elsif ($key_spec =~ /^file:(.+)$/) {
+        # Read from file
+        my $file_path = $1;
+        if (-f $file_path) {
+          my $key_content = $self->read_file($file_path);
+          if ($key_content) {
+            push @{$user_data->{ssh_keys}}, $key_content;
+            $self->print_status('success', "Added key from file: $file_path");
+          }
+        } else {
+          $self->print_status('warning', "Key file not found: $file_path");
+          $failed++;
+        }
+      }
+    }
+    
+    push @{$data->{users}}, $user_data;
+  }
+  
+  # Write to ops/users.yml
+  $self->write_yaml($self->{config}{OUTPUT_FILE}, $data);
+  
+  $self->print_status('success', "Initialization complete!");
+  $self->print_status('info', "Processed: $processed users, Failed: $failed");
+  $self->print_status('info', "Users written to: $self->{config}{OUTPUT_FILE}");
+  
+  return 1;
 }
 
 1;
