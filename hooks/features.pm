@@ -23,7 +23,7 @@ sub perform {
 
 	# Process requested features
 	foreach my $feature (@{$self->{features}}) {
-		if ($feature eq 'openvpn' || $feature eq 'bastion' || $feature eq 'dev-tools') {
+		if ($feature eq 'openvpn' || $feature eq 'bastion' || $feature eq 'dev-tools' || $feature eq 'ocfp') {
 			$self->add_feature($feature);
 		}
 		elsif ($feature eq 'shield') {

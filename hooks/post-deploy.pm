@@ -35,7 +35,7 @@ sub perform {
       "To access the jumpbox over SSH:\n".
       "  #G{$ENV{GENESIS_CALL_ENV} do -- ssh}\n".
       "or:\n".
-      "  #W{ssh $ips[0]}\n".
+      "  #W{ssh $ips[0]}\n"
 		);
 	}
 
