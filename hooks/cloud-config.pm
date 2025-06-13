@@ -1,3 +1,4 @@
+# vim: set ts=2 sw=2 sts=2 foldmethod=marker
 package Genesis::Hook::CloudConfig::Jumpbox v3.2.0;
 
 use strict;
@@ -12,7 +13,7 @@ use Genesis::Hook::CloudConfig::Helpers qw/gigabytes megabytes/;
 sub init {
 	my $class = shift;
 	my $obj = $class->SUPER::init(@_);
-	$obj->check_minimum_genesis_version('3.1.0-rc.4');
+	$obj->check_minimum_genesis_version('3.1.0-rc.20');
 	return $obj;
 }
 
@@ -33,8 +34,12 @@ sub perform {
 							'net_id' => $self->network_reference('id'), # TODO: $self->subnet_reference('net_id'),
 							'security_groups' => ['default'] #$self->subnet_reference('sgs', 'get_security_groups'),
 						},
+						stackit => {
+							'net_id' => $self->network_reference('id'), # TODO: $self->subnet_reference('net_id'),
+							'security_groups' => $self->network_reference('sgs', 'get_sgs_by_names', 'ocfp', 'default'),
+						},
 					},
-				},
+			},
 			)
 		],
 		'vm_types' => [
@@ -48,6 +53,14 @@ sub perform {
 						'boot_from_volume' => $self->TRUE,
 						'root_disk' => {'size' => 15}, # in gigabytes
             'ephemeral_disk' => {encrypted => $self->TRUE}
+					},
+					stackit => {
+						'instance_type' => $self->for_scale({
+							dev => 'g1.1',
+							prod => 'g1.2'
+						}),
+						'boot_from_volume' => $self->TRUE,
+						'root_disk' => {'size' => 20}, # in gigabytes
 					},
 				},
 			),
@@ -67,6 +80,12 @@ sub perform {
               prod => 'storage_premium_perf2'
             })
 					},
+					stackit => {
+						'type' => $self->for_scale({
+              dev  => 'storage_premium_perf6',
+              prod => 'storage_premium_perf8'
+            })
+					},
 				},
 			),
 		],
@@ -75,4 +94,10 @@ sub perform {
 	$self->done($config);
 }
 
+sub get_sgs_by_names {
+	my ($self, $subnet_data, $ref, @names) = @_;
+	my @ids = map {$subnet_data->{$ref}{$_}{id}} @names;
+	# TODO: Error checking
+	return \@ids
+}
 1;

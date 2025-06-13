@@ -64,39 +64,39 @@ sub _dynamic_network_fragment {
   my $self = shift;
 
   # OCFP dynamic network connection
-  my @azs = map {"$ENV{GENESIS_ENVIRONMENT}-$_"} @{$self->env->lookup('params.availability_zones', ['z1'])};
+  #  my @azs = map {"$ENV{GENESIS_ENVIRONMENT}-$_"} @{$self->env->lookup('params.availability_zones', ['z1'])};
 
-  # Determine subnets from azs
-  my %subnets = %{$self->env->director_exodus_lookup('/network')->{subnets}};
-  my %az_to_subnet = map {($subnets{$_}{az}, $_)} keys %subnets;
+  # Determine instance count and IPs from ocfp config
+  my $subnets = $self->env->ocfp_config_lookup('net.subnets');
+  my $prefix = $self->env->ocfp_subnet_prefix;
+  my $az_map = $self->env->director_exodus_lookup('/network')->{azs};
 
-  my $ocfp = $self->env->ocfp_config_lookup('vpc.subnets');
-  my (@ocfp_azs, @ocfp_instances) = ();
-  for my $az (@azs) {
-    my $ip = $ocfp->{$az_to_subnet{$az}}{'reserved-ips'}{'jumpbox_ip'};
+  my (@ips, @azs) = ();
+  for my $subnet (sort grep {/^$prefix/} keys %$subnets) {
+    my $ip = $subnets->{$subnet}{'reserved-ips'}{'jumpbox_ip'};
     next unless $ip;
-    push @ocfp_azs, $az;
-    push @ocfp_instances, $ip;
+    push @ips, $ip;
+    push @azs, $az_map->{$subnets->{$subnet}{az}}{name};
   }
 
   bail(
     "Could not locate any available static IPs in azs %s",
     join(', ',@azs)
-  ) unless @ocfp_instances;
+  ) unless @ips;
 
   my $network_name = "$ENV{GENESIS_ENVIRONMENT}.$ENV{GENESIS_TYPE}.net-jumpbox";
   my $dynamic_network_fragment = <<"EOF";
 exodus:
-  ips: ${\(join ',', @ocfp_instances)}
+  ips: ${\(join ',', @ips)}
 
 instance_groups:
 - name: jumpbox
-  instances: ${\(scalar @ocfp_instances)}
-  azs:${\(join "\n  - ", '','(( replace ))', @ocfp_azs)}
+  instances: ${\(scalar @ips)}
+  azs:${\(join "\n  - ", '','(( replace ))', @azs)}
   networks:
   - (( replace ))
   - name: $network_name
-    static_ips:${\(join "\n    - ", '', @ocfp_instances)}
+    static_ips:${\(join "\n    - ", '', @ips)}
 EOF
   my $network_file = "manifests/network.dynamic.yml";
   mkfile_or_fail($self->env->kit->path($network_file), 0644, $dynamic_network_fragment);
