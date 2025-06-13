@@ -13,6 +13,14 @@ description: |
   to restrict access to other boxes in you BOSH deployments, along
   with a set of common tools and consistant user setup.
 
+supports:
+- aws
+- azure
+- gcp
+- openstack
+- vsphere
+- stackit
+
 certificates:
   openvpn:
     openvpn/certs:

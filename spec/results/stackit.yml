@@ -1,5 +1,5 @@
 exodus:
-  bosh: base
+  bosh: stackit
   features: ""
   is_director: false
   use_create_env: false
@@ -18,7 +18,7 @@ instance_groups:
         bashrc: null
         env:
           TMPDIR: /var/vcap/data/root_tmp
-        hostname: base-jumpbox
+        hostname: stackit-jumpbox
         hosts: []
         users:
         - name: test-user
@@ -40,7 +40,7 @@ instance_groups:
   persistent_disk_type: jumpbox
   stemcell: default
   vm_type: jumpbox
-name: base-jumpbox
+name: stackit-jumpbox
 releases:
 - name: jumpbox
   sha1: 37711c2d66ef574a304280e2f538df05712439f8

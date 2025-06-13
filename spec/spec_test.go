@@ -36,6 +36,11 @@ var _ = Describe("Jumpbox Kit", func() {
 			CloudConfig: "aws",
 			CPI:         "aws",
 		})
+		Test(Environment{
+			Name:        "stackit",
+			CloudConfig: "stackit",
+			CPI:         "stackit",
+		})
 
 	})
 })

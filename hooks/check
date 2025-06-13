@@ -1,49 +1,28 @@
 #!/bin/bash
-set -ue
-
-#Version check
-version_check 3.1.0-rc.9 || exit 1
 
 # Cloud Config checks
-ok=yes
-if [[ -n "${GENESIS_CLOUD_CONFIG:-}" ]]; then
-  if want_feature "ocfp"; then
-    _prefix="$(lookup params.cloud_config_prefix)"
-    [[ -z "${_prefix}" ]] && _prefix="$GENESIS_ENVIRONMENT.$GENESIS_TYPE"
-    _vm_type="${_prefix}.vm-jumpbox"
-    _network="${_prefix}.net-jumpbox"
-    _disk_type="${_prefix}.disk-jumpbox"
-  else # Legacy was hard coded
-    _vm_type="jumpbox"
-    _network="jumpbox"
-    _disk_type="jumpbox"
-  fi
-
-  if ! use_create_env; then
-    cloud_config_needs vm_type "$(lookup params.jumpbox_vm_type ${_vm_type})"
-    cloud_config_needs network "$(lookup params.jumpbox_network ${_network})"
-
-    disk_pool="$(lookup params.jumpbox_disk_pool ${_disk_type})"
-    cloud_config_needs disk_type "$(lookup params.jumpbox_disk_type ${disk_pool})"
-
-    if check_cloud_config; then
-      describe "  cloud-config [#G{OK}]"
-    else
-      describe "  cloud-config [#R{FAILED}]"
-      ok=no
-    fi
+status=ok
+if [[ -n "${GENESIS_CLOUD_CONFIG:-}" ]] ; then
+  cloud_config_needs vm_type    "$(lookup params.jumpbox_vm_type   jumpbox)"
+  cloud_config_needs disk_type  "$(lookup params.jumpbox_disk_pool jumpbox)"
+  cloud_config_needs network    "$(lookup params.jumpbox_network   jumpbox)"
+  if check_cloud_config ; then
+    describe "  cloud-config [#G{OK}]"
+  else
+    describe "  cloud-config [#R{FAILED}]"
+    status=fail
   fi
 fi
 
 users_file="$(lookup 'params.users_file' '')"
-if [[ -n "$users_file" ]]; then
-  if ! [[ -f "$GENESIS_ROOT/$users_file" ]]; then
+if [[ -n "$users_file" ]] ; then
+  if ! [[ -f "$GENESIS_ROOT/$users_file" ]] ; then
     describe "" "Missing users file '$users_file'"
-    ok=no
+    status=fail
   fi
 fi
 
-if [[ "$ok" == "yes" ]]; then
+if [[ "$status" == "ok" ]] ; then
   exit 0
 else
   exit 1
