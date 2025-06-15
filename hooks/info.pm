@@ -1,39 +1,46 @@
-#!/usr/bin/env perl
-# vim: set ts=2 sw=2 sts=2 foldmethod=marker
-package Genesis::Hook::Info::Jumpbox v2.7.0;
+# vim: set ts=2 sw=2 sts=2 noet fdm=marker foldlevel=1:
+package Genesis::Hook::Info::Jumpbox;
 
-use strict;
+use v5.20;
 use warnings;
-use v5.20; # Genesis min perl version is 5.20
 
 # Only needed for development
 BEGIN {push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'/.genesis/lib'}
 
-use parent qw(Genesis::Hook);
+use parent qw(Genesis::Hook::Info);
 
-use Genesis qw/info run/;
+use Genesis qw/describe run/;
+use JSON::PP;
 
+# init - Initialize the hook {{{
 sub init {
-	my $class = shift;
-	my $obj = $class->SUPER::init(@_);
-	$obj->check_minimum_genesis_version('3.1.0-rc.20');
-	return $obj;
+  my ($class, %ops) = @_;
+  my $obj = $class->SUPER::init(%ops);
+  $obj->check_minimum_genesis_version('3.1.0');
+  return $obj;
 }
+# }}}
 
+# perform - Main hook execution {{{
 sub perform {
-	my ($self) = @_;
-
-	# Get jumpbox IP addresses
-	my ($ips_json, $rc, $err) = run('bosh vms --json | jq -r \'.Tables[0].Rows[0].ips\'');
-	chomp($ips_json);
-
-	my @ips = split(/\s+/, $ips_json);
-
-	info("jumpbox ip(s): #C{" . join(', ', @ips) . "}");
-
-	# TODO: List users and expiry of certs for openvpn users
-
-	return $self->done();
+  my ($self) = @_;
+  
+  # Get jumpbox IP addresses
+  my ($out, $rc, $err) = run('bosh', 'vms', '--json');
+  if ($rc == 0) {
+    my $data = decode_json($out);
+    if ($data->{Tables} && @{$data->{Tables}} && $data->{Tables}[0]{Rows}) {
+      my $ips = $data->{Tables}[0]{Rows}[0]{ips} || '';
+      my @ips = split(/,\s*/, $ips);
+      
+      describe("jumpbox ip(s): #C{" . join(' ', @ips) . "}");
+    }
+  }
+  
+  # TODO: List users and expiry of certs
+  
+  return $self->done();
 }
+# }}}
 
 1;

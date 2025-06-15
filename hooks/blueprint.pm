@@ -1,7 +1,7 @@
-#!/usr/bin/env perl
-package Genesis::Hook::Blueprint::Jumpbox v3.0.4;
+# vim: set ts=2 sw=2 sts=2 noet fdm=marker foldlevel=1:
+package Genesis::Hook::Blueprint::Jumpbox;
 
-use strict;
+use v5.20;
 use warnings;
 
 # Only needed for development
@@ -10,55 +10,82 @@ use parent qw(Genesis::Hook::Blueprint);
 
 use Genesis qw/bail mkfile_or_fail/;
 
+# init - Initialize the hook {{{
 sub init {
-  my $class = shift;
-  my $obj = $class->SUPER::init(@_);
-  $obj->{features} = [$obj->env->features];
-  $obj->{files} = [];
-  $obj->check_minimum_genesis_version('3.1.0-rc.9');
+  my ($class, %ops) = @_;
+  my $obj = $class->SUPER::init(%ops);
+  $obj->check_minimum_genesis_version('3.1.0');
   return $obj;
 }
+# }}}
 
+# perform - Main hook execution {{{
 sub perform {
-  my ($blueprint) = @_; # $blueprint is '$self'
-
-  $blueprint->add_files(qw(
+  my ($self) = @_;
+  
+  # Base manifest files
+  $self->add_files(qw(
     manifests/jumpbox.yml
     manifests/releases/jumpbox.yml
     manifests/releases/toolbelt.yml
   ));
-
+  
+  # Process features
   my @invalid = ();
-  for my $feature ($blueprint->features) {
-    if ($feature =~ /^(ocfp|bastion|dev-tools)$/) {
-      $blueprint->add_files("manifests/${feature}.yml")
+  for my $feature ($self->features) {
+    if ($feature eq 'shield') {
+      bail(
+        "The Jumpbox Genesis Kit no longer supplies a 'shield' feature flag.\n".
+        "If you wish to back up this jumpbox, please switch to using BOSH\n".
+        "runtime configurations to add the shield-agent to the deployment."
+      );
+    } elsif ($feature eq 'azure') {
+      $self->env->notify(warning =>
+        "The Jumpbox Genesis Kit no longer supplies a 'azure' feature flag.\n".
+        "This is because the 'azure' feature only impacted availability zones\n".
+        "and sets, which have no impact on a single-instance deployment."
+      );
+    } elsif ($feature eq 'proxy') {
+      $self->env->notify(warning =>
+        "You no longer need to explicitly specify the 'proxy' feature.\n".
+        "If you remove it, everything will still work as expected."
+      );
     } elsif ($feature eq 'openvpn') {
-      $blueprint->add_files(qw(
+      $self->add_files(qw(
         manifests/addons/openvpn.yml
         manifests/releases/openvpn.yml
         manifests/releases/networking.yml
       ));
+    } elsif ($feature =~ /^(bastion|dev-tools)$/) {
+      $self->add_files("manifests/${feature}.yml");
+    } elsif ($feature eq 'ocfp') {
+      # OCFP handled separately below
     } elsif (-f "$ENV{GENESIS_ROOT}/ops/${feature}.yml") {
-      $blueprint->add_files("$ENV{GENESIS_ROOT}/ops/${feature}.yml")
+      $self->add_files("$ENV{GENESIS_ROOT}/ops/${feature}.yml");
     } else {
       push @invalid, $feature;
     }
   }
-  bail(
-    "Invalid %s encountered: %s",
-    count_nouns(scalar(@invalid), 'feature', suppress_count => 1),
-    join(', ', @invalid)
-  ) if @invalid;
-
-  # TODO: Make the users file dynamic, and add exodus data for capturing what
-  #       user details were deployed.
- 
-  $blueprint->add_files("manifests/users.ym")
-    if $blueprint->env->lookup('params.users_file');
-
-  $blueprint->_dynamic_network_fragment if $blueprint->want_feature('ocfp');
-  $blueprint->done();
+  
+  if (@invalid) {
+    my $noun = @invalid == 1 ? 'feature' : 'features';
+    bail(
+      "[ERROR] The following $noun are invalid: %s\n".
+      "See the manual for list of valid features.",
+      join(', ', map { "#c{$_}" } @invalid)
+    );
+  }
+  
+  # Add users manifest if configured
+  $self->add_files("manifests/users.yml")
+    if $self->env->lookup('params.users_file');
+  
+  # Handle OCFP dynamic network configuration
+  $self->_dynamic_network_fragment if $self->want_feature('ocfp');
+  
+  return $self->done();
 }
+# }}}
 
 sub _dynamic_network_fragment {
   my $self = shift;
@@ -104,3 +131,4 @@ EOF
 }
 
 1;
+# vim: set ts=2 sw=2 sts=2 noet fdm=marker foldlevel=1:
