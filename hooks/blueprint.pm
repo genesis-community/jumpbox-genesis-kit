@@ -103,7 +103,16 @@ sub _dynamic_network_fragment {
     my $ip = $subnets->{$subnet}{'reserved-ips'}{'jumpbox_ip'};
     next unless $ip;
     push @ips, $ip;
-    push @azs, $az_map->{$subnets->{$subnet}{az}}{name};
+    
+    # Fetch AZ from vault based on environment type
+    my $env_type = $self->env->lookup('params.env_type', $ENV{GENESIS_TYPE});
+    my $az_path = sprintf("secret/config/%s/%s/net/subnets/%s:az",
+      $self->env->ocfp_config_lookup('base'),
+      $env_type,
+      $subnet
+    );
+    my $az = $self->env->vault_lookup($az_path);
+    push @azs, $az_map->{$az}{name};
   }
 
   bail(
