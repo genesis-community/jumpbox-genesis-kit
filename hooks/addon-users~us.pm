@@ -1,4 +1,3 @@
-# vim: set ts=2 sw=2 sts=2 noet fdm=marker foldlevel=1:
 package Genesis::Hook::Addon::Jumpbox::Users;
 
 use v5.20;
@@ -110,12 +109,12 @@ sub perform {
 
   # Get action
   my $action = shift @{$self->{args}};
-  
+
   # Handle init command
   if ($action eq 'init') {
     return $self->handle_init_command();
   }
-  
+
   # Validate regular action
   unless (exists $self->{config}{VALID_ACTIONS}{$action}) {
     $self->print_status('error', "Invalid action. Must be one of: init, " . join(", ", sort keys %{$self->{config}{VALID_ACTIONS}}));
@@ -126,13 +125,13 @@ sub perform {
   # Check if no usernames provided and try to load from Vault
   if (scalar(@{$self->{args}}) == 0 && $action eq 'add') {
     $self->print_status('info', "No usernames provided, checking Vault for users...");
-    
+
     my $vault = VaultUserManager->new();
     my $vault_users = $vault->get_all_users();
-    
+
     if (@$vault_users) {
       $self->print_status('info', "Found " . scalar(@$vault_users) . " users in Vault, using those...");
-      
+
       # Convert Vault users to arguments format
       foreach my $user (@$vault_users) {
         foreach my $key_spec (@{$user->{ssh_keys} || []}) {
@@ -143,7 +142,7 @@ sub perform {
           }
         }
       }
-      
+
       if (scalar(@{$self->{args}}) == 0) {
         $self->print_status('warning', "Vault users found but no SSH key sources to process");
         return 0;
@@ -153,7 +152,7 @@ sub perform {
       return 0;
     }
   }
-  
+
   # Validate input
   if (scalar(@{$self->{args}}) > $self->{config}{MAX_USERNAMES}) {
     $self->print_status('error', "Too many usernames (max $self->{config}{MAX_USERNAMES})");
@@ -796,20 +795,20 @@ sub format_progress_bar {
 
 sub handle_init_command {
   my ($self) = @_;
-  
+
   $self->print_status('info', "Initializing users from Vault config...");
-  
+
   # Create VaultUserManager instance
   my $vault = VaultUserManager->new();
-  
+
   # Try to find config path across different environment types
   my $config_env_type = $vault->find_config_path();
-  
+
   unless ($config_env_type) {
     $self->print_status('warning', "No users found in any Vault config path");
     $self->print_status('info', "Tried paths for environment types: mgmt, ocf");
     $self->print_status('info', "Checking environment Vault path for existing users...");
-    
+
     # Check if we should look for users in environment path
     my $env_users = $vault->get_all_users();
     if (@$env_users) {
@@ -819,34 +818,34 @@ sub handle_init_command {
     }
     return 1;
   }
-  
+
   # Set the found environment type
   if ($config_env_type ne $vault->env_type()) {
     $self->print_status('info', "Found config in '$config_env_type' environment type (current: " . $vault->env_type() . ")");
     $vault->env_type($config_env_type);
   }
-  
+
   # Sync from config to environment
   $self->print_status('info', "Syncing users from config to environment...");
   my $success = $vault->sync_config_to_environment();
-  
+
   unless ($success) {
     $self->print_status('error', "Failed to sync users from config to environment");
     return 0;
   }
-  
+
   # Get all users from environment path after sync
   my $users = $vault->get_all_users();
   $self->print_status('info', "Synced " . scalar(@$users) . " users to environment Vault");
-  
+
   # Now generate ops/users.yml from the synced users
   $self->print_status('info', "Generating ops/users.yml from Vault users...");
-  
+
   # Process each user and fetch their SSH keys
   my $data = { users => [] };
   my $processed = 0;
   my $failed = 0;
-  
+
   foreach my $user (@$users) {
     $processed++;
     my $user_data = {
@@ -854,7 +853,7 @@ sub handle_init_command {
       shell => $user->{shell} || '/bin/bash',
       ssh_keys => ['(( append ))']
     };
-    
+
     # Process SSH keys
     foreach my $key_spec (@{$user->{ssh_keys} || []}) {
       if ($key_spec =~ /^ssh-/) {
@@ -864,7 +863,7 @@ sub handle_init_command {
         # Fetch from GitHub/GitLab
         my ($source, $username) = ($1, $2);
         $self->print_status('info', "Fetching SSH keys for $username from $source...");
-        
+
         my $keys = $self->fetch_keys($source, $username);
         if ($keys && @$keys) {
           push @{$user_data->{ssh_keys}}, @$keys;
@@ -888,18 +887,19 @@ sub handle_init_command {
         }
       }
     }
-    
+
     push @{$data->{users}}, $user_data;
   }
-  
+
   # Write to ops/users.yml
   $self->write_yaml($self->{config}{OUTPUT_FILE}, $data);
-  
+
   $self->print_status('success', "Initialization complete!");
   $self->print_status('info', "Processed: $processed users, Failed: $failed");
   $self->print_status('info', "Users written to: $self->{config}{OUTPUT_FILE}");
-  
+
   return 1;
 }
 
 1;
+# vim: set ts=2 sw=2 sts=2 noet fdm=marker foldlevel=1:

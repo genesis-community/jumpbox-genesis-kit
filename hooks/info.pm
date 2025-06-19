@@ -1,4 +1,3 @@
-# vim: set ts=2 sw=2 sts=2 noet fdm=marker foldlevel=1:
 package Genesis::Hook::Info::Jumpbox;
 
 use v5.20;
@@ -9,7 +8,7 @@ BEGIN {push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'/.genesis/
 
 use parent qw(Genesis::Hook::Info);
 
-use Genesis qw/describe run/;
+use Genesis qw/info run/;
 use JSON::PP;
 
 # init - Initialize the hook {{{
@@ -24,7 +23,7 @@ sub init {
 # perform - Main hook execution {{{
 sub perform {
   my ($self) = @_;
-  
+
   # Get jumpbox IP addresses
   my ($out, $rc, $err) = run('bosh', 'vms', '--json');
   if ($rc == 0) {
@@ -32,15 +31,16 @@ sub perform {
     if ($data->{Tables} && @{$data->{Tables}} && $data->{Tables}[0]{Rows}) {
       my $ips = $data->{Tables}[0]{Rows}[0]{ips} || '';
       my @ips = split(/,\s*/, $ips);
-      
-      describe("jumpbox ip(s): #C{" . join(' ', @ips) . "}");
+
+      info("jumpbox ip(s): #C{" . join(' ', @ips) . "}\n");
     }
   }
-  
+
   # TODO: List users and expiry of certs
-  
+
   return $self->done();
 }
 # }}}
 
 1;
+# vim: set ts=2 sw=2 sts=2 noet fdm=marker foldlevel=1:

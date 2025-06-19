@@ -1,4 +1,3 @@
-# vim: set ts=2 sw=2 sts=2 noet fdm=marker foldlevel=1:
 package Genesis::Hook::CloudConfig::Jumpbox;
 
 use v5.20;
@@ -104,3 +103,4 @@ sub get_sgs_by_names {
 	return \@ids
 }
 1;
+# vim: set ts=2 sw=2 sts=2 noet fdm=marker foldlevel=1:

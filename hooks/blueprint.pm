@@ -1,4 +1,3 @@
-# vim: set ts=2 sw=2 sts=2 noet fdm=marker foldlevel=1:
 package Genesis::Hook::Blueprint::Jumpbox;
 
 use v5.20;
@@ -22,14 +21,14 @@ sub init {
 # perform - Main hook execution {{{
 sub perform {
   my ($self) = @_;
-  
+
   # Base manifest files
   $self->add_files(qw(
     manifests/jumpbox.yml
     manifests/releases/jumpbox.yml
     manifests/releases/toolbelt.yml
   ));
-  
+
   # Process features
   my @invalid = ();
   for my $feature ($self->features) {
@@ -66,7 +65,7 @@ sub perform {
       push @invalid, $feature;
     }
   }
-  
+
   if (@invalid) {
     my $noun = @invalid == 1 ? 'feature' : 'features';
     bail(
@@ -75,14 +74,14 @@ sub perform {
       join(', ', map { "#c{$_}" } @invalid)
     );
   }
-  
+
   # Add users manifest if configured
   $self->add_files("manifests/users.yml")
     if $self->env->lookup('params.users_file');
-  
+
   # Handle OCFP dynamic network configuration
   $self->_dynamic_network_fragment if $self->want_feature('ocfp');
-  
+
   return $self->done();
 }
 # }}}
@@ -103,24 +102,35 @@ sub _dynamic_network_fragment {
     my $ip = $subnets->{$subnet}{'reserved-ips'}{'jumpbox_ip'};
     next unless $ip;
     push @ips, $ip;
-    
+
     # Fetch AZ from vault based on environment type
-    my $env_type = $self->env->lookup('params.env_type', $ENV{GENESIS_TYPE});
+    my $env_type = $self->env->type;
     my $az_path = sprintf("secret/config/%s/%s/net/subnets/%s:az",
       $self->env->ocfp_config_lookup('base'),
       $env_type,
       $subnet
     );
-    my $az = $self->env->vault_lookup($az_path);
-    push @azs, $az_map->{$az}{name};
+    my $az = eval { $self->env->vault->get($az_path) };
+    if (!$az) {
+      warning("Could not retrieve AZ for subnet %s from vault path %s", $subnet, $az_path);
+      push @azs, undef;
+    } else {
+      push @azs, $az_map->{$az}{name} || undef;
+    }
   }
 
   bail(
-    "Could not locate any available static IPs in azs %s",
-    join(', ',@azs)
+    "Could not locate any available static IPs"
   ) unless @ips;
 
   my $network_name = "$ENV{GENESIS_ENVIRONMENT}.$ENV{GENESIS_TYPE}.net-jumpbox";
+
+  # Filter out undefined AZs
+  my @valid_azs = grep { defined $_ } @azs;
+  if (!@valid_azs) {
+    bail("No valid availability zones found for Jumpbox instances");
+  }
+
   my $dynamic_network_fragment = <<"EOF";
 exodus:
   ips: ${\(join ',', @ips)}
@@ -128,7 +138,7 @@ exodus:
 instance_groups:
 - name: jumpbox
   instances: ${\(scalar @ips)}
-  azs:${\(join "\n  - ", '','(( replace ))', @azs)}
+  azs:${\(join "\n  - ", '','(( replace ))', @valid_azs)}
   networks:
   - (( replace ))
   - name: $network_name
@@ -140,4 +150,5 @@ EOF
 }
 
 1;
+# vim: set ts=2 sw=2 sts=2 noet fdm=marker foldlevel=1:
 # vim: set ts=2 sw=2 sts=2 noet fdm=marker foldlevel=1:
