@@ -8,7 +8,7 @@ BEGIN {push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'/.genesis/
 
 use parent qw(Genesis::Hook::Check);
 
-use Genesis qw/info missing_cloud_config_keys/;
+use Genesis qw/info/;
 
 # init - Initialize the hook {{{
 sub init {
@@ -28,12 +28,13 @@ sub perform {
   if ($ENV{GENESIS_CLOUD_CONFIG}) {
     $self->start_check("Checking cloud config");
 
+		# TODO: This below was from non-ocfp previous world
     my @errors;
-    push @errors, $self->env->missing_cloud_config_keys(
-      vm_type   => [$self->env->lookup('params.jumpbox_vm_type',   'jumpbox')],
-      disk_type => [$self->env->lookup('params.jumpbox_disk_pool', 'jumpbox')],
-      network   => [$self->env->lookup('params.jumpbox_network',   'jumpbox')]
-    );
+		# push @errors, $self->env->missing_cloud_config_keys(
+		#  vm_type   => [$self->env->lookup('params.jumpbox_vm_type',   'jumpbox')],
+		#  disk_type => [$self->env->lookup('params.jumpbox_disk_pool', 'jumpbox')],
+		#  network   => [$self->env->lookup('params.jumpbox_network',   'jumpbox')]
+		#);
 
     if (@errors) {
       $self->check_result(0, join("\n", @errors));
