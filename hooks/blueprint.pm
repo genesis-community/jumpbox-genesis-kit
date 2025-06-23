@@ -1,7 +1,8 @@
 package Genesis::Hook::Blueprint::Jumpbox;
 
-use v5.20;
+use strict;
 use warnings;
+use v5.20;
 
 # Only needed for development
 BEGIN {push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'/.genesis/lib'}
@@ -106,8 +107,8 @@ sub _dynamic_network_fragment {
     # Fetch AZ from vault based on environment type
     my $env_type = $self->env->type;
     my $az_path = sprintf("secret/config/%s/%s/net/subnets/%s:az",
-      $self->env->ocfp_config_lookup('base'),
-      $env_type,
+      $self->env->name,
+      $self->env->ocfp_type,
       $subnet
     );
     my $az = eval { $self->env->vault->get($az_path) };
@@ -150,5 +151,4 @@ EOF
 }
 
 1;
-# vim: set ts=2 sw=2 sts=2 noet fdm=marker foldlevel=1:
 # vim: set ts=2 sw=2 sts=2 noet fdm=marker foldlevel=1:
