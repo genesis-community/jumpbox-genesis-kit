@@ -8,7 +8,7 @@ BEGIN {push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'/.genesis/
 
 use parent qw(Genesis::Hook::Check);
 
-use Genesis qw/info/;
+use Genesis qw/info missing_cloud_config_keys/;
 
 # init - Initialize the hook {{{
 sub init {
