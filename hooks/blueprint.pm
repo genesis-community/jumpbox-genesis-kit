@@ -8,7 +8,7 @@ use v5.20;
 BEGIN {push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'/.genesis/lib'}
 use parent qw(Genesis::Hook::Blueprint);
 
-use Genesis qw/bail mkfile_or_fail/;
+use Genesis qw/bail warning mkfile_or_fail/;
 
 # init - Initialize the hook {{{
 sub init {
@@ -81,7 +81,8 @@ sub perform {
     if $self->env->lookup('params.users_file');
 
   # Handle OCFP dynamic network configuration
-  $self->_dynamic_network_fragment if $self->want_feature('ocfp');
+	# TODO: This is now handled in cloud-config.pm vvv
+	#$self->_dynamic_network_fragment if $self->want_feature('ocfp');
 
   return $self->done();
 }
