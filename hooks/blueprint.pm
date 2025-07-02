@@ -59,7 +59,9 @@ sub perform {
     } elsif ($feature =~ /^(bastion|dev-tools)$/) {
       $self->add_files("manifests/${feature}.yml");
     } elsif ($feature eq 'ocfp') {
-      # OCFP handled separately below
+        $self->add_files(
+        'manifests/ocfp.yml',
+        );
     } elsif (-f "$ENV{GENESIS_ROOT}/ops/${feature}.yml") {
       $self->add_files("$ENV{GENESIS_ROOT}/ops/${feature}.yml");
     } else {
@@ -76,6 +78,57 @@ sub perform {
     );
   }
 
+  my $dynamic_static_fragment = '';
+  if ($self->want_feature('ocfp')) {
+    my $subnets   = $self->env->ocfp_config_lookup('net.subnets');
+    my $prefix    = $self->env->ocfp_subnet_prefix;
+    my $az_map    = $self->env->director_exodus_lookup('/network')->{azs};
+
+    my $ocfp_type = $self->env->ocfp_type;
+    my $env_name  = $self->env->name;
+    $env_name =~ s/-\Q$ocfp_type\E$// if $env_name =~ /-\Q$ocfp_type\E$/;
+
+    my (@ips, @azs);
+    for my $subnet (sort grep {/^$prefix/} keys %$subnets) {
+      next unless my $ip = $subnets->{$subnet}{'reserved-ips'}{'jumpbox_ip'};
+      push @ips, $ip;
+
+      my $az_path = sprintf(
+        "secret/config/%s/%s/net/subnets/%s:az",
+        $env_name, $ocfp_type, $subnet
+      );
+      my $jumpbox_az = eval { $self->env->vault->get($az_path) };
+      push @azs, ($jumpbox_az && $az_map->{$jumpbox_az}{name}) // undef;
+    }
+
+    @ips    = ($ips[0])             if @ips    > 1;  # Limit to 1 IP for Jumpbox
+    @azs    = ($azs[0])             if @azs    > 1;  # Limit to 1 AZ for Jumpbox
+
+
+    die "Could not locate any available static IPs" unless @ips;
+    my @valid_azs = grep { defined } @azs;
+    die "No valid AZs found for Jumpbox instances" unless @valid_azs;
+
+    my $net_name = sprintf('%s.jumpbox.net-jumpbox', $self->env->name);
+
+    $dynamic_static_fragment = <<"EOF";
+exodus:
+  ips: @{[join ',', @ips]}
+
+instance_groups:
+- name: jumpbox
+  azs:${\(join "\n  - ", '','(( replace ))', @valid_azs)}
+  networks:
+  - (( replace ))
+  - name: $net_name
+    static_ips:${\(join "\n    - ", '', @ips)}
+EOF
+
+    my $out = 'manifests/network.dynamic.yml';
+    mkfile_or_fail($self->env->kit->path($out), 0644, $dynamic_static_fragment);
+    $self->add_files($out);
+  }
+
   # Add users manifest if configured
   $self->add_files("manifests/users.yml")
     if $self->env->lookup('params.users_file');
@@ -88,68 +141,70 @@ sub perform {
 }
 # }}}
 
-sub _dynamic_network_fragment {
-  my $self = shift;
+# sub _dynamic_network_fragment {
+#   my $self = shift;
+#
+#   # OCFP dynamic network connection
+#   #  my @azs = map {"$ENV{GENESIS_ENVIRONMENT}-$_"} @{$self->env->lookup('params.availability_zones', ['z1'])};
+#
+#   # Determine instance count and IPs from ocfp config
+#   my $subnets = $self->env->ocfp_config_lookup('net.subnets');
+#   my $prefix = $self->env->ocfp_subnet_prefix;
+#   my $az_map = $self->env->director_exodus_lookup('/network')->{azs};
+#
+#   my (@ips, @azs) = ();
+#   for my $subnet (sort grep {/^$prefix/} keys %$subnets) {
+#     my $ip = $subnets->{$subnet}{'reserved-ips'}{'jumpbox_ip'};
+#     next unless $ip;
+#     push @ips, $ip;
+#
+#     # Fetch AZ from vault based on environment type
+#     my $env_type = $self->env->type;
+#     my $az_path = sprintf("secret/config/%s/%s/net/subnets/%s:az",
+#       $self->env->name,
+#       $self->env->ocfp_type,
+#       $subnet
+#     );
+#     my $az = eval { $self->env->vault->get($az_path) };
+#     if (!$az) {
+#       warning("Could not retrieve AZ for subnet %s from vault path %s", $subnet, $az_path);
+#       push @azs, undef;
+#     } else {
+#       push @azs, $az_map->{$az}{name} || undef;
+#     }
+#   }
+#
+#   bail(
+#     "Could not locate any available static IPs"
+#   ) unless @ips;
+#
+#   my $network_name = "$ENV{GENESIS_ENVIRONMENT}.$ENV{GENESIS_TYPE}.net-jumpbox";
+#
+#   # Filter out undefined AZs
+#   my @valid_azs = grep { defined $_ } @azs;
+#   if (!@valid_azs) {
+#     bail("No valid availability zones found for Jumpbox instances");
+#   }
+#
+#   my $dynamic_network_fragment = <<"EOF";
+# exodus:
+#   ips: ${\(join ',', @ips)}
+#
+# instance_groups:
+# - name: jumpbox
+#   instances: ${\(scalar @ips)}
+#   azs:${\(join "\n  - ", '','(( replace ))', @valid_azs)}
+#   networks:
+#   - (( replace ))
+#   - name: $network_name
+#     static_ips:${\(join "\n    - ", '', @ips)}
+# EOF
+#   my $network_file = "manifests/network.dynamic.yml";
+#   mkfile_or_fail($self->env->kit->path($network_file), 0644, $dynamic_network_fragment);
+#   $self->add_files($network_file);
+# }
 
-  # OCFP dynamic network connection
-  #  my @azs = map {"$ENV{GENESIS_ENVIRONMENT}-$_"} @{$self->env->lookup('params.availability_zones', ['z1'])};
 
-  # Determine instance count and IPs from ocfp config
-  my $subnets = $self->env->ocfp_config_lookup('net.subnets');
-  my $prefix = $self->env->ocfp_subnet_prefix;
-  my $az_map = $self->env->director_exodus_lookup('/network')->{azs};
-
-  my (@ips, @azs) = ();
-  for my $subnet (sort grep {/^$prefix/} keys %$subnets) {
-    my $ip = $subnets->{$subnet}{'reserved-ips'}{'jumpbox_ip'};
-    next unless $ip;
-    push @ips, $ip;
-
-    # Fetch AZ from vault based on environment type
-    my $env_type = $self->env->type;
-    my $az_path = sprintf("secret/config/%s/%s/net/subnets/%s:az",
-      $self->env->name,
-      $self->env->ocfp_type,
-      $subnet
-    );
-    my $az = eval { $self->env->vault->get($az_path) };
-    if (!$az) {
-      warning("Could not retrieve AZ for subnet %s from vault path %s", $subnet, $az_path);
-      push @azs, undef;
-    } else {
-      push @azs, $az_map->{$az}{name} || undef;
-    }
-  }
-
-  bail(
-    "Could not locate any available static IPs"
-  ) unless @ips;
-
-  my $network_name = "$ENV{GENESIS_ENVIRONMENT}.$ENV{GENESIS_TYPE}.net-jumpbox";
-
-  # Filter out undefined AZs
-  my @valid_azs = grep { defined $_ } @azs;
-  if (!@valid_azs) {
-    bail("No valid availability zones found for Jumpbox instances");
-  }
-
-  my $dynamic_network_fragment = <<"EOF";
-exodus:
-  ips: ${\(join ',', @ips)}
-
-instance_groups:
-- name: jumpbox
-  instances: ${\(scalar @ips)}
-  azs:${\(join "\n  - ", '','(( replace ))', @valid_azs)}
-  networks:
-  - (( replace ))
-  - name: $network_name
-    static_ips:${\(join "\n    - ", '', @ips)}
-EOF
-  my $network_file = "manifests/network.dynamic.yml";
-  mkfile_or_fail($self->env->kit->path($network_file), 0644, $dynamic_network_fragment);
-  $self->add_files($network_file);
-}
 
 1;
 # vim: set ts=2 sw=2 sts=2 noet fdm=marker foldlevel=1:

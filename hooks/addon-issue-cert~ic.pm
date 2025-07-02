@@ -19,7 +19,7 @@ sub init {
 sub cmd_details {
 	return
 	"Issue a new VPN certificate to a named user, so that they can access the VPN.\n".
-	"Usage: genesis do <env> -- issue-cert user@email.addr.ess\n".
+	"Usage: genesis do <env> -- issue-cert user\@email.addr.ess\n".
 	"This addon requires the 'openvpn' feature to be enabled.\n";
 }
 
@@ -32,7 +32,7 @@ sub perform {
 	# Get email from arguments
 	my $email = $self->{args}[0];
 	if (!$email) {
-		bail("USAGE: genesis do <env> -- issue-cert user@email.addr.ess");
+		bail("USAGE: genesis do <env> -- issue-cert user\@email.addr.ess");
 	}
 
 	my $secret = "$ENV{GENESIS_SECRETS_BASE}openvpn/certs/users/$email";
@@ -44,19 +44,17 @@ sub perform {
 	run('safe x509 issue --signed-by "$1" --name "$2" -u digital_signature -u key_encipherment -u client_auth --ttl "$3" "$4"',
 		$ca, $email, $ttl, $secret);
 
-	# Show certificate info
-	my $quiet = ($self->{args}[1] && $self->{args}[1] eq "--quiet") ? 1 : 0;
-
-	if (!$quiet) {
-    # TODO: Use Genesis run cmd.
-		run('safe x509 show "$1"', $secret);
+	# Show the newly-issued cert unless --quiet was supplied
+	my $quiet = ($self->{args}[1] && $self->{args}[1] eq '--quiet') ? 1 : 0;
+	unless ($quiet) {
+		run('safe x509 show $1', $secret);
 		info(
-      "To get the certificate:\n".
-      "  #C{safe read %s:certificate}]\n".
-      "To get the private key:\n".
-      "  #Y{safe read %s:key}]\n"),
-    $secret
-  )
+		"To get the certificate:\n".
+		"  #C{safe read %s:certificate}\n".
+		"To get the private key:\n".
+		"  #Y{safe read %s:key}\n",
+		$secret, $secret
+		);
 	}
 
 	return $self->done();

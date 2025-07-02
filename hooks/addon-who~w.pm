@@ -19,6 +19,7 @@ sub init {
 sub cmd_details {
 	return
 	"See who is logged into the jumpbox, via SSH.\n".
+	"Any additional arguments will be passed to the ssh command.\n"
 	"This requires the ability to login via SSH.\n";
 }
 
@@ -31,10 +32,9 @@ sub perform {
 	my @ips = split(/\s+/, $ips_json);
 
 	# Execute SSH command with 'who' command
-	exec('ssh', $ips[0], '--', 'who');
-
-	# We won't reach here if exec is successful
-	return $self->done();
+	my @args = @{$self->{args}};
+	exec('ssh', $ips[0], @args, '--', 'who')
+		or bail("Failed to execute SSH command: $!");
 }
 
 1;

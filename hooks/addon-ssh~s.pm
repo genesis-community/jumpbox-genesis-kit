@@ -32,10 +32,8 @@ sub perform {
 
 	# Execute SSH command
 	my @args = @{$self->{args}};
-	exec('ssh', $ips[0], @args);
-
-	# We won't reach here if exec is successful
-	return $self->done();
+	exec('ssh', $ips[0], @args)
+		or bail("Failed to execute SSH command: $!");
 }
 
 1;
