@@ -78,56 +78,56 @@ sub perform {
     );
   }
 
-  my $dynamic_static_fragment = '';
-  if ($self->want_feature('ocfp')) {
-    my $subnets   = $self->env->ocfp_config_lookup('net.subnets');
-    my $prefix    = $self->env->ocfp_subnet_prefix;
-    my $az_map    = $self->env->director_exodus_lookup('/network')->{azs};
-
-    my $ocfp_type = $self->env->ocfp_type;
-    my $env_name  = $self->env->name;
-    $env_name =~ s/-\Q$ocfp_type\E$// if $env_name =~ /-\Q$ocfp_type\E$/;
-
-    my (@ips, @azs);
-    for my $subnet (sort grep {/^$prefix/} keys %$subnets) {
-      next unless my $ip = $subnets->{$subnet}{'reserved-ips'}{'jumpbox_ip'};
-      push @ips, $ip;
-
-      my $az_path = sprintf(
-        "secret/config/%s/%s/net/subnets/%s:az",
-        $env_name, $ocfp_type, $subnet
-      );
-      my $jumpbox_az = eval { $self->env->vault->get($az_path) };
-      push @azs, ($jumpbox_az && $az_map->{$jumpbox_az}{name}) // undef;
-    }
-
-    @ips    = ($ips[0])             if @ips    > 1;  # Limit to 1 IP for Jumpbox
-    @azs    = ($azs[0])             if @azs    > 1;  # Limit to 1 AZ for Jumpbox
-
-
-    die "Could not locate any available static IPs" unless @ips;
-    my @valid_azs = grep { defined } @azs;
-    die "No valid AZs found for Jumpbox instances" unless @valid_azs;
-
-    my $net_name = sprintf('%s.jumpbox.net-jumpbox', $self->env->name);
-
-    $dynamic_static_fragment = <<"EOF";
-exodus:
-  ips: @{[join ',', @ips]}
-
-instance_groups:
-- name: jumpbox
-  azs:${\(join "\n  - ", '','(( replace ))', @valid_azs)}
-  networks:
-  - (( replace ))
-  - name: $net_name
-    static_ips:${\(join "\n    - ", '', @ips)}
-EOF
-
-    my $out = 'manifests/network.dynamic.yml';
-    mkfile_or_fail($self->env->kit->path($out), 0644, $dynamic_static_fragment);
-    $self->add_files($out);
-  }
+#  my $dynamic_static_fragment = '';
+#  if ($self->want_feature('ocfp')) {
+#    my $subnets   = $self->env->ocfp_config_lookup('net.subnets');
+#    my $prefix    = $self->env->ocfp_subnet_prefix;
+#    my $az_map    = $self->env->director_exodus_lookup('/network')->{azs};
+#
+#    my $ocfp_type = $self->env->ocfp_type;
+#    my $env_name  = $self->env->name;
+#    $env_name =~ s/-\Q$ocfp_type\E$// if $env_name =~ /-\Q$ocfp_type\E$/;
+#
+#    my (@ips, @azs);
+#    for my $subnet (sort grep {/^$prefix/} keys %$subnets) {
+#      next unless my $ip = $subnets->{$subnet}{'reserved-ips'}{'jumpbox_ip'};
+#      push @ips, $ip;
+#
+#      my $az_path = sprintf(
+#        "secret/config/%s/%s/net/subnets/%s:az",
+#        $env_name, $ocfp_type, $subnet
+#      );
+#      my $jumpbox_az = eval { $self->env->vault->get($az_path) };
+#      push @azs, ($jumpbox_az && $az_map->{$jumpbox_az}{name}) // undef;
+#    }
+#
+#    @ips    = ($ips[0])             if @ips    > 1;  # Limit to 1 IP for Jumpbox
+#    @azs    = ($azs[0])             if @azs    > 1;  # Limit to 1 AZ for Jumpbox
+#
+#
+#    die "Could not locate any available static IPs" unless @ips;
+#    my @valid_azs = grep { defined } @azs;
+#    die "No valid AZs found for Jumpbox instances" unless @valid_azs;
+#
+#    my $net_name = sprintf('%s.jumpbox.net-jumpbox', $self->env->name);
+#
+#    $dynamic_static_fragment = <<"EOF";
+#exodus:
+#  ips: @{[join ',', @ips]}
+#
+#instance_groups:
+#- name: jumpbox
+#  azs:${\(join "\n  - ", '','(( replace ))', @valid_azs)}
+#  networks:
+#  - (( replace ))
+#  - name: $net_name
+#    static_ips:${\(join "\n    - ", '', @ips)}
+#EOF
+#
+#    my $out = 'manifests/network.dynamic.yml';
+#    mkfile_or_fail($self->env->kit->path($out), 0644, $dynamic_static_fragment);
+#    $self->add_files($out);
+#  }
 
   # Add users manifest if configured
   $self->add_files("manifests/users.yml")

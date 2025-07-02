@@ -24,6 +24,7 @@ sub perform {
 		'networks' => [
 			$self->network_definition('jumpbox', strategy => 'ocfp',
 				dynamic_subnets => {
+					subnets=> ["ocfp-1"],
 					allocation => {
 						size => 0,
 						statics => 0,

@@ -2,10 +2,26 @@
 meta:
   ocfp:
     env:
+      az:     (( concat genesis.env "-z2" ))
+      subnet: (( grab params.ocfp_subnet || "ocfp-1" ))
       cloud:     (( concat genesis.env "." genesis.type "." ))
+    vault:
+      config_slug:   (( grab params.ocfp_vault_config_slug || genesis.ocfp_env ))
+      config:        (( concat genesis.ocfp_config_mount meta.ocfp.vault.config_slug ))
+    jumpbox:
+      ip:        (( vault meta.ocfp.vault.config "/net/subnets/" meta.ocfp.env.subnet "/reserved-ips:jumpbox_ip" ))
 
 params:
   jumpbox_vm_type:   (( concat meta.ocfp.env.cloud "vm-jumpbox" ))
   jumpbox_disk_type: (( concat meta.ocfp.env.cloud "disk-jumpbox" ))
   jumpbox_network:   (( concat meta.ocfp.env.cloud "net-jumpbox" ))
 
+instance_groups:
+- name: jumpbox
+  azs: 
+  - (( grab meta.ocfp.env.az ))
+  networks:
+  - (( replace ))
+  - name: (( grab params.jumpbox_network || "jumpbox" ))
+    static_ips:
+    - (( grab meta.ocfp.jumpbox.ip ))
