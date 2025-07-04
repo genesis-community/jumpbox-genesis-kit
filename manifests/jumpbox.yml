@@ -10,6 +10,7 @@ params:
   env_vars: {}
   bashrc: ~
   users: (( param "Set up some users to log into this jumpbox" ))
+  distinct_bosh_user: false
   ca_validity_period: 1y
   cert_validity_period: 180d
 
@@ -43,6 +44,7 @@ instance_groups:
             banner: (( grab params.banner ))
             hosts: (( grab params.hosts ))
             bashrc: (( grab params.bashrc ))
+            distinct_bosh_user: (( grab params.distinct_bosh_user || false ))
             env:
               TMPDIR: /var/vcap/data/root_tmp
               .: (( inject params.env_vars ))
