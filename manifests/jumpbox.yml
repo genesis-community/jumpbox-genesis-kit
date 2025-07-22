@@ -50,8 +50,8 @@ instance_groups:
               .: (( inject params.env_vars ))
 
       - { release: jumpbox, name: inventory       }
-      - { release: toolbelt, name: toolbelt       }
-      - { release: toolbelt, name: toolbelt-quick }
+#      - { release: toolbelt, name: toolbelt       }
+#      - { release: toolbelt, name: toolbelt-quick }
 
 
 stemcells:
