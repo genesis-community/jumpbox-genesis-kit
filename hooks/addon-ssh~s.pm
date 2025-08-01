@@ -7,7 +7,7 @@ use warnings; # Genesis min perl version is 5.20
 BEGIN {push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'./.genesis/lib'}
 
 use parent qw(Genesis::Hook::Addon);
-use Genesis qw/run/;
+use Genesis qw/run info read_json_from/;
 
 sub init {
 	my $class = shift;
@@ -26,14 +26,18 @@ sub perform {
 	my ($self) = @_;
 
 	# Get jumpbox IP
-	my ($ips_json, $rc, $err) = run('bosh vms --json | jq -r \'.Tables[0].Rows[0].ips\'');
-	chomp($ips_json);
-	my @ips = split(/\s+/, $ips_json);
+	my ($data, $rc) = read_json_from($self->env->bosh->execute('vms', '--json'));
+	if ($rc == 0) {
+		if ($data->{Tables} && @{$data->{Tables}} && $data->{Tables}[0]{Rows}) {
+			my $ips = $data->{Tables}[0]{Rows}[0]{ips} || '';
+			my @ips = split(/,\s*/, $ips);
 
 	# Execute SSH command
 	my @args = @{$self->{args}};
 	exec('ssh', $ips[0], @args)
 		or bail("Failed to execute SSH command: $!");
+		}
+	}
 }
 
 1;

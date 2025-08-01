@@ -8,7 +8,7 @@ BEGIN {push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'/.genesis/
 
 use parent qw(Genesis::Hook);
 
-use Genesis qw/info run/;
+use Genesis qw/info run read_json_from/;
 use JSON::PP;
 
 # init - Initialize the hook {{{
@@ -25,15 +25,16 @@ sub perform {
   my ($self) = @_;
 
   # Get jumpbox IP addresses
-  my ($out, $rc, $err) = run('bosh', 'vms', '--json');
+  my ($data, $rc) = read_json_from($self->env->bosh->execute('vms', '--json'));
   if ($rc == 0) {
-    my $data = decode_json($out);
     if ($data->{Tables} && @{$data->{Tables}} && $data->{Tables}[0]{Rows}) {
       my $ips = $data->{Tables}[0]{Rows}[0]{ips} || '';
       my @ips = split(/,\s*/, $ips);
 
       info("jumpbox ip(s): #C{" . join(' ', @ips) . "}\n");
     }
+  } else {
+    info("Error getting IP");
   }
 
   # TODO: List users and expiry of certs
