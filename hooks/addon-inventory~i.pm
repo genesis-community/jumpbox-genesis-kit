@@ -26,10 +26,10 @@ sub perform {
 	my ($self) = @_;
 
 	# Run inventory errand
-	my ($out, $rc, $err) = run({interactive => 1}, 'bosh run-errand inventory');
+	my ($out, $rc) = $self->env->bosh->execute({interactive => 1},'run-errand','inventory');
 
 	if ($rc != 0) {
-		bail("Failed to run the inventory errand: $err");
+		bail("Failed to run the inventory errand");
 	}
 
 	return $self->done();
