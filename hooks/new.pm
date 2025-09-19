@@ -6,10 +6,10 @@ use warnings;
 # Only needed for development
 BEGIN {push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'/.genesis/lib'}
 
-use parent qw(Genesis::Hook::New);
+use parent qw(Genesis::Hook);
 
 use Genesis qw/mkfile_or_fail bail/;
-use Genesis::UI qw/prompt_for_boolean prompt_for_line prompt_for_multiline/;
+use Genesis::UI qw/prompt_for_boolean prompt_for_line/;
 
 # init - Initialize the hook {{{
 sub init {
@@ -33,18 +33,15 @@ sub perform {
 
   if ($openvpn) {
     @vpn_client_routes = prompt_for_multiline(
-      'What routes should OpenVPN push to connecting clients? (CIDR format e.g. 10.4.0.0/16)',
-      { min => 1 }
+      'What routes should OpenVPN push to connecting clients? (CIDR format e.g. 10.4.0.0/16)'
     );
 
     @vpn_dns_servers = prompt_for_multiline(
-      'What DNS servers should OpenVPN advertise to connecting clients?',
-      { min => 1 }
+      'What DNS servers should OpenVPN advertise to connecting clients?', '--validation', 'ip'
     );
 
     @vpn_dns_search_domains = prompt_for_multiline(
-      'What DNS search domains should OpenVPN advertise to connecting clients?',
-      { min => 1 }
+      'What DNS search domains should OpenVPN advertise to connecting clients?'
     );
   }
 
@@ -110,7 +107,7 @@ sub perform {
       );
 
       my $pubkey = prompt_for_line(
-        "What is $user's public SSH key?",
+        "What is #C{$user}'s public SSH key?",
         { validation => qr/ssh-/ }
       );
 
