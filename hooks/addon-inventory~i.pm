@@ -1,4 +1,4 @@
-package Genesis::Hook::Addon::Jumpbox::Inventory;
+package Genesis::Hook::Addon::Jumpbox::Inventory v3.0.0;
 
 use v5.20;
 use warnings; # Genesis min perl version is 5.20

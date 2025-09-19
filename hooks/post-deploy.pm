@@ -1,4 +1,4 @@
-package Genesis::Hook::PostDeploy::Jumpbox;
+package Genesis::Hook::PostDeploy::Jumpbox v3.0.0;
 
 use v5.20;
 use warnings;

@@ -1,4 +1,4 @@
-package Genesis::Hook::Info::Jumpbox;
+package Genesis::Hook::Info::Jumpbox v3.0.0;
 
 use v5.20;
 use warnings;

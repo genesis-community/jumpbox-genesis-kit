@@ -1,4 +1,4 @@
-package Genesis::Hook::Blueprint::Jumpbox;
+package Genesis::Hook::Blueprint::Jumpbox v3.0.0;
 
 use strict;
 use warnings;
