@@ -41,9 +41,9 @@ sub perform {
       "\n\n".
       "#M{$ENV{GENESIS_ENVIRONMENT}} Jumpbox deployed!\n\n".
       "For details about the deployment, run\n\n".
-      "  #G{$ENV{GENESIS_CALL} info $ENV{GENESIS_ENVIRONMENT}}\n\n".
+      "  #G{$ENV{GENESIS_CALL} $ENV{GENESIS_ENVIRONMENT} info}\n\n".
       "To access the jumpbox over SSH:\n\n".
-      "  #G{$ENV{GENESIS_CALL} do $ENV{GENESIS_ENVIRONMENT} -- ssh}\n\n".
+      "  #G{$ENV{GENESIS_CALL} $ENV{GENESIS_ENVIRONMENT} do -- ssh}\n\n".
       "or:\n\n".
       (@ips ? "  #W{ssh $ips[0]}\n" : "")
     );
