@@ -9,6 +9,12 @@ BEGIN {push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'./.genesis
 use parent qw(Genesis::Hook::Addon);
 use Genesis qw/run/;
 
+# Include get_jumpbox_ip method from mixin
+BEGIN {
+	require File::Basename;
+	my $mixin_file = File::Basename::dirname(__FILE__) . '/lib/_get_jumpbox_ip.pm';
+	do $mixin_file or die "Failed to include addon mixin $mixin_file: $!";
+}
 sub init {
 	my $class = shift;
 	my $obj = $class->SUPER::init(@_);
@@ -18,23 +24,15 @@ sub init {
 
 sub cmd_details {
 	return
-	"See who is logged into the jumpbox, via SSH.\n".
-	"Any additional arguments will be passed to the ssh command.\n"
-	"This requires the ability to login via SSH.\n";
+		"See who is logged into the jumpbox, via SSH.\n".
+		"Any additional arguments will be passed to the ssh command.\n".
+		"This requires the ability to login via SSH.\n";
 }
 
 sub perform {
 	my ($self) = @_;
-
-	# Get jumpbox IP
-	my ($ips_json, $rc, $err) = run('bosh vms --json | jq -r \'.Tables[0].Rows[0].ips\'');
-	chomp($ips_json);
-	my @ips = split(/\s+/, $ips_json);
-
-	# Execute SSH command with 'who' command
-	my @args = @{$self->{args}};
-	exec('ssh', $ips[0], @args, '--', 'who')
-		or bail("Failed to execute SSH command: $!");
+	my $ip = $self->get_jumpbox_ip();
+	exec('ssh', $ip, @{$self->{args}}, '--', 'who') or bail("Failed to execute SSH command: $!");
 }
 
 1;

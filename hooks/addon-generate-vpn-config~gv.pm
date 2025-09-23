@@ -9,6 +9,13 @@ BEGIN {push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'./.genesis
 use parent qw(Genesis::Hook::Addon);
 use Genesis qw/run bail/;
 
+# Include get_jumpbox_ip method from mixin
+BEGIN {
+	require File::Basename;
+	my $mixin_file = File::Basename::dirname(__FILE__) . '/lib/_get_jumpbox_ip.pm';
+	do $mixin_file or die "Failed to include addon mixin $mixin_file: $!";
+}
+
 sub init {
 	my $class = shift;
 	my $obj = $class->SUPER::init(@_);
@@ -46,9 +53,7 @@ sub perform {
 	my $email = $args[0];
 
 	# Get jumpbox IP addresses
-	my ($ips_json, $rc, $err) = run('bosh vms --json | jq -r \'.Tables[0].Rows[0].ips\'');
-	chomp($ips_json);
-	my @ips = split(/\s+/, $ips_json);
+	my $ip = $self->get_jumpbox_ip();
 
 	# Check if the certificate exists, generate if needed
 	my ($exists, $exists_rc) = run(
@@ -63,7 +68,7 @@ sub perform {
 	}
 
 	# Get VPN external IP and port
-	my $vpn_external_ip = $self->env->lookup('params.vpn_external_ip', $ips[0]);
+	my $vpn_external_ip = $self->env->lookup('params.vpn_external_ip', $ip);
 	if (!$vpn_external_ip) {
 		bail("Failed to get VPN External IP from BOSH or Params - check your connection to BOSH or params file");
 	}
