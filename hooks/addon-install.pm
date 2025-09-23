@@ -9,7 +9,7 @@ BEGIN {push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'./.genesis
 use parent qw(Genesis::Hook::Addon);
 use Genesis qw/run bail info/;
 
-# Include get_jumpbox_ip method from mixin
+# Include _get_jumpbox_ip method from mixin
 BEGIN {
 	require File::Basename;
 	my $mixin_file = File::Basename::dirname(__FILE__) . '/lib/_get_jumpbox_ip.pm';

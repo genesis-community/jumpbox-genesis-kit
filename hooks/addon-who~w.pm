@@ -9,7 +9,7 @@ BEGIN {push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'./.genesis
 use parent qw(Genesis::Hook::Addon);
 use Genesis qw/run/;
 
-# Include get_jumpbox_ip method from mixin
+# Include _get_jumpbox_ip method from mixin
 BEGIN {
 	require File::Basename;
 	my $mixin_file = File::Basename::dirname(__FILE__) . '/lib/_get_jumpbox_ip.pm';
@@ -31,7 +31,7 @@ sub cmd_details {
 
 sub perform {
 	my ($self) = @_;
-	my $ip = $self->get_jumpbox_ip();
+	my $ip = $self->_get_jumpbox_ip();
 	exec('ssh', $ip, @{$self->{args}}, '--', 'who') or bail("Failed to execute SSH command: $!");
 }
 
