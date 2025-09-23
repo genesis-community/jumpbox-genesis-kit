@@ -3,14 +3,17 @@ package Genesis::Hook::Addon::Jumpbox::Users v3.0.0;
 use v5.20;
 use warnings; # Genesis min perl version is 5.20
 
-# Only needed for development
-BEGIN {push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'./.genesis/lib'}
+BEGIN {
+	push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'./.genesis/lib';
+	require File::Basename;
+	push @INC, File::Basename::dirname(__FILE__).'/lib';
+}
 
 use parent qw(Genesis::Hook::Addon);
-use lib File::Spec->catdir(dirname(__FILE__), 'lib');
 use VaultUserManager;
 
-use Genesis qw/run bail info error warning prompt_for_boolean/;
+use Genesis qw/run bail info error warning/;
+use Genesis::UI qw/prompt_for_boolean/;
 use File::Basename;
 use File::Path qw(make_path);
 use File::Spec;
@@ -25,7 +28,7 @@ use Fcntl qw(:flock SEEK_SET);
 sub init {
   my $class = shift;
   my $obj = $class->SUPER::init(@_);
-  $obj->check_minimum_genesis_version('3.1.0-rc.20');
+  $obj->check_minimum_genesis_version('3.1.0');
 
   # Configuration
   $obj->{config} = {
