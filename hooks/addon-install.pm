@@ -15,10 +15,11 @@ sub init {
 	$obj->check_minimum_genesis_version('3.1.0');
 	# Check options and args
 	my $opts = $obj->parse_options([
-		'destination=s',
+		'destination|d=s',
 		'sha=s',
-		'v|verbose',
-		'cleanup-on-failure'
+		'verbose|v',
+		'cleanup-on-failure',
+		'post-install=s'
 		# Will need more options to support S3 downloads, such as access key, secret, region, url, etc.
 	]);
 	bail("You must provide a single URL to install") unless @{$obj->{args}} == 1;
@@ -36,10 +37,11 @@ sub cmd_details {
 	#	"  http(s)://example.com/something.deb\n". # Future
 		"  path/to/local/file\n\n".
 		"Options:\n".
+		"  -v, --verbose             Show detailed output\n".
 		"  -d, --destination <path>  Destination path (default: /opt/<filename>)\n".
 		"  --sha <sha256>            SHA256 checksum to verify\n".
 		"  --cleanup-on-failure      Remove file if SHA verification fails (default: keep for debugging)\n".
-		"  -v, --verbose             Show detailed output\n\n"
+		"  --post-install <command>  Command to run on jumpbox after installation completes\n\n";
 }
 
 sub perform {
@@ -76,6 +78,13 @@ sub perform {
 		$self->_install_tarball($remote_tmp_file, $filename);
 	} else {
 		$self->_install_file($remote_tmp_file, $filename);
+	}
+	if ($self->{opts}{'post-install'}) {
+		# Run post-install script on jumpbox instance
+		my $post_install_cmd = $self->{opts}{'post-install'};
+		info("Running post-install command: %s", $post_install_cmd);
+		my $result = $self->_run_cmd($post_install_cmd, interactive => 1);
+		$self->_check_result($result, "Post-install command failed: %s");
 	}
 
 	return $self->done(1);
@@ -301,8 +310,8 @@ sub _validate_destination {
 	}
 
 	# Warn if not under typical safe installation paths
-	# Allow /opt, /var/vcap/store, /var/vcap/data/*, /var/vcap/jobs/*, /var/vcap/packages/*, /srv, /home
-	unless ($destination =~ m{^/(?:opt|var/vcap/(?:store|data/[^/]+|jobs/[^/]+|packages/[^/]+)|srv|home)/}) {
+	# Allow /opt, /usr/s?bin, /user/local/sbin, /var/vcap/store, /var/vcap/data/*, /var/vcap/jobs/*, /var/vcap/packages/*, /srv, /home
+	unless ($destination =~ m{^/(?:opt|usr/(local/)?s?bin|var/vcap/(?:store|data/[^/]+|jobs/[^/]+|packages/[^/]+)|srv|home)/}) {
 		warning("Destination %s is outside typical installation paths", $destination);
 	}
 }
