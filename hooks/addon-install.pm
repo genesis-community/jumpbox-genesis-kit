@@ -16,14 +16,39 @@ sub init {
 	# Check options and args
 	my $opts = $obj->parse_options([
 		'destination|d=s',
+		'permissions|m=s',
 		'sha=s',
 		'verbose|v',
 		'cleanup-on-failure',
-		'post-install=s'
+		'post-install=s',
+		'extract-file|x=s@',      # For tarballs
+		'strip-components=i'
 		# Will need more options to support S3 downloads, such as access key, secret, region, url, etc.
 	]);
 	bail("You must provide a single URL to install") unless @{$obj->{args}} == 1;
+
+	# Validate options
 	$obj->{opts} = $opts;
+	if (defined $opts->{permissions}) {
+		bail(
+			"Invalid permissions mode '%s'. Must be a 3- or 4-digit octal number", $opts->{permissions}
+		) unless $opts->{permissions} =~ /^[0-7]{3,4}$/;
+	}
+	my $is_tarball = $obj->_parse_url($obj->{args}[0])->[0] eq 'tarball';
+	if (defined $opts->{'strip-components'}) {
+		bail(
+			"Option --strip-components can only be used when installing a tarball",
+		) unless $is_tarball;
+		bail(
+			"Invalid value for --strip-components: %s. Must be a non-negative integer", $opts->{'strip-components'}
+		) unless $opts->{'strip-components'} =~ /^\d+$/ && $opts->{'strip-components'} >= 0;
+	}
+	if (defined $opts->{'extract-file'}) {
+		bail(
+			"Option --extract-file can only be used when installing a tarball",
+		) unless $is_tarball;
+	}
+
 	return $obj;
 }
 
@@ -33,15 +58,29 @@ sub cmd_details {
 		"Usage: $ENV{GENESIS_CALL_ENV} $ENV{GENESIS_CALLED_COMMAND} $ENV{GENESIS_ADDON_SCRIPT} url [-d destination] [--sha <sha256>] [--cleanup-on-failure] [-v]\n\n".
 		"Valid url formats:\n".
 		"  http(s)://example.com/file.tar.gz\n".
-	#	"  s3://bucket-name/path/to/file.tgz\n".   # Future
-	#	"  http(s)://example.com/something.deb\n". # Future
+	#	"  s3://<host:>bucket-name/path/to/file.tgz\n".   # Future
 		"  path/to/local/file\n\n".
-		"Options:\n".
+		"#u{Options:}\n".
 		"  -v, --verbose             Show detailed output\n".
-		"  -d, --destination <path>  Destination path (default: /opt/<filename>)\n".
+		"  -d, --destination <path>  Destination path (default: /usr/local/bin/<filename-or-contents>)\n".
+		"  -m, --permissions <mode>  Set file permissions (e.g., 755) after installation\n\n".
+
+		"#Ku{Tarball-specific Options:}\n".
+		"  -x, --extract-file <name> Extract specific file from tarball (can be used multiple times if destination is a directory)\n".
+		"  --strip-components <n>    Strip leading path components when extracting tarball\n\n".
+
+		"#Ku{Validation Options:}\n".
 		"  --sha <sha256>            SHA256 checksum to verify\n".
-		"  --cleanup-on-failure      Remove file if SHA verification fails (default: keep for debugging)\n".
-		"  --post-install <command>  Command to run on jumpbox after installation completes\n\n";
+		"  --cleanup-on-failure      Remove file if SHA verification fails (default: keep for debugging)\n\n".
+
+		"#Ku{Post-Installation Activity:}\n".
+		"  --post-install <command>  Command to run on jumpbox after installation completes.  If the command is prefixed with a \@ ".
+		                            "character, this indicates that it is a local script file (relative to the deployment root ".
+		                            "directory) to be uploaded and executed on the jumpbox.\n\n";
+
+		# HTTPS Options that may be useful in future:
+		#  --http-user <username>    Username for HTTP basic auth
+		#  --http-pass <password>    Password for HTTP basic auth
 }
 
 sub perform {
@@ -81,10 +120,7 @@ sub perform {
 	}
 	if ($self->{opts}{'post-install'}) {
 		# Run post-install script on jumpbox instance
-		my $post_install_cmd = $self->{opts}{'post-install'};
-		info("Running post-install command: %s", $post_install_cmd);
-		my $result = $self->_run_cmd($post_install_cmd, interactive => 1);
-		$self->_check_result($result, "Post-install command failed: %s");
+		$self->_run_post_install();
 	}
 
 	return $self->done(1);
@@ -178,7 +214,8 @@ sub _download_http {
 	info("Downloading file from %s to jumpbox...", $url);
 	my $url_escaped = $self->_shell_escape($url);
 	my $file_escaped = $self->_shell_escape($remote_tmp_file);
-	my $curl_cmd = "curl -fsSL -o $file_escaped $url_escaped";
+	my $verbose = $self->{opts}{verbose} ? 's' : '';
+	my $curl_cmd = "curl -${verbose}fSL -o $file_escaped $url_escaped";
 	my $result = $self->_run_cmd($curl_cmd);
 	$self->_check_result($result, "Failed to download file from $url: %s");
 }
@@ -196,7 +233,7 @@ sub _download_s3 {
 	info("Downloading file from S3 %s to jumpbox...", $url);
 	my $file_escaped = $self->_shell_escape($remote_tmp_file);
 	my $s3path_escaped = $self->_shell_escape("$bucket/$key");
-	my $cmd = "s3 get  --to $file_escaped $s3path_escaped";
+	my $cmd = "s3 get --to $file_escaped $s3path_escaped";
 	my $result = $self->_run_cmd($cmd);
 	$self->_check_result($result, "Failed to download file from $url: %s");
 }
@@ -209,18 +246,17 @@ sub _upload_local {
 	info("Uploading local file %s to jumpbox...", $url);
 	bail("Local file %s does not exist", $url) unless -f $url;
 
-	my $results = $self->bosh->upload_to_instance(
+	my $result = $self->bosh->upload_to_instance(
 		local_path => $url,
 		remote_path => $remote_tmp_file,
 		target => 'jumpbox'
 	);
 
-	unless ($results && @$results) {
+	unless ($result) {
 		info("Warning: file upload completed but no confirmation received");
 		return;
 	}
 
-	my $result = $results->[0];
 	$self->_check_result($result, "Failed to upload local file $url: %s");
 }
 # }}}
@@ -322,19 +358,40 @@ sub _install_tarball {
 	my ($self, $remote_file, $filename) = @_;
 
 	my $dirname = $filename =~ s{\.tar\.gz$}{}r;
-	my $destination = $self->{opts}{destination} || '/opt/'.$dirname;
+	my $destination = $self->{opts}{destination} || '/usr/local/bin/'.$dirname;
 
 	# Validate destination path for security
 	$self->_validate_destination($destination);
 
-	info("Extracting tarball to %s...", $destination);
 	my $dest_escaped = $self->_shell_escape($destination);
 	my $file_escaped = $self->_shell_escape($remote_file);
-	my $untar_cmd = "sudo mkdir -p $dest_escaped && sudo tar -xzf $file_escaped -C $dest_escaped";
-	my $result = $self->_run_cmd($untar_cmd);
-	$self->_check_result($result, "Failed to extract tarball to $destination: %s");
 
+	# Handle tar options
+	my $strip='';
+	if ($self->{opts}{'strip-components'}) {
+		$strip = " --strip-components=".$self->{opts}{'strip-components'};
+	}
+
+	if (my @extract_files = @{$self->{opts}{'extract-file'} || []}) {
+		# Extract specific files
+		info(
+			"Extracting specified files from tarball to %s: %s...",
+			$destination,
+			join(", ", @extract_files)
+		);
+		my $files_escaped = join(' ', map { $self->_shell_escape($_) } @extract_files);
+		my $untar_cmd = "sudo mkdir -p $dest_escaped && sudo tar -xzf $file_escaped -C $dest_escaped$strip $files_escaped";
+		my $result = $self->_run_cmd($untar_cmd);
+		$self->_check_result($result, "Failed to extract specified files from tarball to $destination: %s");
+	} else {
+		# Extract entire tarball
+		info("Extracting tarball to %s...", $destination);
+		my $untar_cmd = "sudo mkdir -p $dest_escaped && sudo tar -xzf $file_escaped -C $dest_escaped$strip";
+		my $result = $self->_run_cmd($untar_cmd);
+		$self->_check_result($result, "Failed to extract tarball to $destination: %s");
+	}
 	info("Extraction complete.");
+
 	# Clean up
 	my $rm_cmd = "rm -f $file_escaped";
 	$self->_run_cmd($rm_cmd);
@@ -346,7 +403,7 @@ sub _install_tarball {
 sub _install_file {
 	my ($self, $remote_file, $filename) = @_;
 
-	my $destination = $self->{opts}{destination} || '/opt/'.$filename;
+	my $destination = $self->{opts}{destination} || '/usr/local/bin/'.$filename;
 
 	# Validate destination path for security
 	$self->_validate_destination($destination);
@@ -354,11 +411,59 @@ sub _install_file {
 	info("Moving file to %s...", $destination);
 	my $file_escaped = $self->_shell_escape($remote_file);
 	my $dest_escaped = $self->_shell_escape($destination);
+	# Create destination directory if needed
+	my $dirname = ( $destination =~ m{^(.*)/} )[0];
+	my $dir_cmd = "sudo mkdir -p ". $self->_shell_escape(($dirname));
+	my $dir_result = $self->_run_cmd($dir_cmd);
+	$self->_check_result($dir_result, "Failed to create destination directory for $destination: %s");
 	my $mv_cmd = "sudo mv $file_escaped $dest_escaped";
 	my $result = $self->_run_cmd($mv_cmd);
 	$self->_check_result($result, "Failed to move file to $destination: %s");
 
 	info("Installation complete.");
+}
+# }}}
+
+# _run_post_install - Execute post-install command on jumpbox {{{
+sub _run_post_install {
+	my ($self) = @_;
+	my $post_cmd = $self->{opts}{'post-install'};
+	my $local_file = '';
+	if ($post_cmd =~ s/^@//) {
+		$local_file = $post_cmd =~ s{^@}{};
+		bail("Post-install local script %s does not exist", $local_file) unless -f $local_file;
+	} else {
+		# Create a temporary script file locally to upload
+		$local_file = $self->temp_file('post_install_script.sh');
+		open my $fh, '>', $local_file or bail("Failed to create temporary post-install script: %s", $!);
+		print $fh "#!/bin/bash\nset -e\n", $post_cmd, "\n";
+		close $fh;
+	}
+
+	# Upload script to jumpbox
+	my $remote_script = "/tmp/post_install_".time().".sh";
+	info("Uploading post-install script to jumpbox...");
+	my $result = $self->bosh->upload_to_instance(
+		local_path => $local_file,
+		remote_path => $remote_script,
+		target => 'jumpbox'
+	);
+	unless ($result) {
+		info("Warning: post-install script upload completed but no confirmation received");
+		return;
+	}
+	$self->_check_result($result, "Failed to upload post-install script: %s");
+	# Make script executable
+	my $script_escaped = $self->_shell_escape($remote_script);
+	my $chmod_cmd = "chmod +x $script_escaped";
+	my $chmod_result = $self->_run_cmd($chmod_cmd);
+	$self->_check_result($chmod_result, "Failed to set execute permission on post-install script: %s");
+
+	# Execute script
+	info("Executing post-install script on jumpbox...");
+	my $exec_result = $self->_run_cmd($script_escaped, interactive => $self->{opts}{verbose} ? 1 : 0);
+	$self->_check_result($exec_result, "Post-install script execution failed: %s");
+	info("Post-install script completed successfully.");
 }
 # }}}
 
