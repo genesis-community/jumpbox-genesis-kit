@@ -481,7 +481,7 @@ sub _run_post_install {
 	$self->_check_result($exec_result, "Post-install script execution failed: %s");
 
 	# Remove script
-	my $rm_cmd = "rm -f $script_escaped";
+	my $rm_cmd = "sudo rm -f $script_escaped";
 	$self->_run_cmd($rm_cmd);
 	info("Post-install script completed successfully.");
 }
