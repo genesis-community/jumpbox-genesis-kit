@@ -455,7 +455,7 @@ sub _run_post_install {
 	}
 
 	# Upload script to jumpbox
-	my $remote_script = "/usr/local/bin/post_install_".time().".sh";
+	my $remote_script = "/tmp/post_install_".time().".sh";
 	info("Uploading post-install script to jumpbox...");
 	my $result = $self->bosh->upload_to_instance(
 		local_path => $local_file,
@@ -468,11 +468,12 @@ sub _run_post_install {
 		return;
 	}
 	$self->_check_result($result, "Failed to upload post-install script: %s");
-	# Make script executable
-	my $script_escaped = $self->_shell_escape($remote_script);
-	my $chmod_cmd = "chmod +x $script_escaped";
-	my $chmod_result = $self->_run_cmd($chmod_cmd);
-	$self->_check_result($chmod_result, "Failed to set execute permission on post-install script: %s");
+
+	# Move the script to a location that is executable (e.g., /usr/local/bin)
+	my $script_escaped = $self->_shell_escape("/usr/local/bin/post_install_".time().".sh");
+	my $tmp_script_escaped = $self->_shell_escape($remote_script);
+	my $mv_cmd = "sudo mv $tmp_script_escaped $script_escaped && sudo chmod +x $script_escaped";
+	my $mv_result = $self->_run_cmd($mv_cmd);
 
 	# Execute script
 	info("Executing post-install script on jumpbox...");
