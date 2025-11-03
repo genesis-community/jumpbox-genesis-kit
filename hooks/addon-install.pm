@@ -29,12 +29,15 @@ sub init {
 
 	# Validate options
 	$obj->{opts} = $opts;
+	my $is_tarball = ($obj->_parse_url($obj->{args}[0]))[0] eq 'tarball';
 	if (defined $opts->{permissions}) {
+		bail(
+			"Option --permissions can only be used when installing a single file, not a tarball",
+		) if $is_tarball;
 		bail(
 			"Invalid permissions mode '%s'. Must be a 3- or 4-digit octal number", $opts->{permissions}
 		) unless $opts->{permissions} =~ /^[0-7]{3,4}$/;
 	}
-	my $is_tarball = $obj->_parse_url($obj->{args}[0])->[0] eq 'tarball';
 	if (defined $opts->{'strip-components'}) {
 		bail(
 			"Option --strip-components can only be used when installing a tarball",
@@ -62,7 +65,8 @@ sub cmd_details {
 		"  path/to/local/file\n\n".
 		"#u{Options:}\n".
 		"  -v, --verbose             Show detailed output\n".
-		"  -d, --destination <path>  Destination path (default: /usr/local/bin/<filename-or-contents>)\n".
+		"  -d, --destination <path>  Destination path.  This will default to /usr/local/bin/filename for simple files, ".
+		                            "or /opt/tarball-name/ for tarballs.\n".
 		"  -m, --permissions <mode>  Set file permissions (e.g., 755) after installation\n\n".
 
 		"#Ku{Tarball-specific Options:}\n".
@@ -358,7 +362,7 @@ sub _install_tarball {
 	my ($self, $remote_file, $filename) = @_;
 
 	my $dirname = $filename =~ s{\.tar\.gz$}{}r;
-	my $destination = $self->{opts}{destination} || '/usr/local/bin/'.$dirname;
+	my $destination = $self->{opts}{destination} || '/opt/'.$dirname;
 
 	# Validate destination path for security
 	$self->_validate_destination($destination);
@@ -379,6 +383,9 @@ sub _install_tarball {
 			$destination,
 			join(", ", @extract_files)
 		);
+		# Test that the files are actually in the tarball
+		my $list_cmd = "tar -tzf $file_escaped$strip ".join(' ', map { $self->_shell_escape($_) } @extract_files);
+		my $list_result = $self->_run_cmd($list_cmd);
 		my $files_escaped = join(' ', map { $self->_shell_escape($_) } @extract_files);
 		my $untar_cmd = "sudo mkdir -p $dest_escaped && sudo tar -xzf $file_escaped -C $dest_escaped$strip $files_escaped";
 		my $result = $self->_run_cmd($untar_cmd);
@@ -419,6 +426,13 @@ sub _install_file {
 	my $mv_cmd = "sudo mv $file_escaped $dest_escaped";
 	my $result = $self->_run_cmd($mv_cmd);
 	$self->_check_result($result, "Failed to move file to $destination: %s");
+	# Set permissions if requested
+	if (defined $self->{opts}{permissions}) {
+		info("Setting file permissions to %s...", $self->{opts}{permissions});
+		my $chmod_cmd = "sudo chmod ".$self->{opts}{permissions}." $dest_escaped";
+		my $chmod_result = $self->_run_cmd($chmod_cmd);
+		$self->_check_result($chmod_result, "Failed to set permissions on $destination: %s");
+	}
 
 	info("Installation complete.");
 }
@@ -434,19 +448,20 @@ sub _run_post_install {
 		bail("Post-install local script %s does not exist", $local_file) unless -f $local_file;
 	} else {
 		# Create a temporary script file locally to upload
-		$local_file = $self->temp_file('post_install_script.sh');
+		$local_file = $self->tempfile('post_install_script.sh');
 		open my $fh, '>', $local_file or bail("Failed to create temporary post-install script: %s", $!);
 		print $fh "#!/bin/bash\nset -e\n", $post_cmd, "\n";
 		close $fh;
 	}
 
 	# Upload script to jumpbox
-	my $remote_script = "/tmp/post_install_".time().".sh";
+	my $remote_script = "/usr/local/bin/post_install_".time().".sh";
 	info("Uploading post-install script to jumpbox...");
 	my $result = $self->bosh->upload_to_instance(
 		local_path => $local_file,
 		remote_path => $remote_script,
-		target => 'jumpbox'
+		target => 'jumpbox',
+		interactive => $self->{opts}{verbose} ? 1 : 0
 	);
 	unless ($result) {
 		info("Warning: post-install script upload completed but no confirmation received");
@@ -463,6 +478,10 @@ sub _run_post_install {
 	info("Executing post-install script on jumpbox...");
 	my $exec_result = $self->_run_cmd($script_escaped, interactive => $self->{opts}{verbose} ? 1 : 0);
 	$self->_check_result($exec_result, "Post-install script execution failed: %s");
+
+	# Remove script
+	my $rm_cmd = "rm -f $script_escaped";
+	$self->_run_cmd($rm_cmd);
 	info("Post-install script completed successfully.");
 }
 # }}}
