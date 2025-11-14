@@ -305,7 +305,7 @@ sub _verify_sha {
 		target => 'jumpbox',
 		interactive => 0
 	);
-	$self->_check_result($result, "Failed to compute SHA256 checksum of downloaded file: %s");
+	$self->_check_result($result, "Failed to compute SHA256 checksum of downloaded file: %s") unless $result->{exit_code} == 0;
 
 	my $out = $result->{stdout}//'';
 	$out =~ s/\s+.*$//ms; # Extract just the hash from sha256sum output
@@ -386,17 +386,18 @@ sub _install_tarball {
 	if (my @extract_files = @{$self->{opts}{'extract-file'} || []}) {
 		# Extract specific files
 		info(
-			"\nExtracting specified files from tarball to %s:%s.",
+			"\nExtracting specified files from tarball to %s:%s",
 			$destination,
-			join("", map {"\n  - "} @extract_files)
+			join("", map {"\n  - $_"} @extract_files)
 		);
 		# Test that the files are actually in the tarball
 		my $list_cmd = "tar -tzf $file_escaped$strip ".join(' ', map { $self->_shell_escape($_) } @extract_files);
 		my $list_result = $self->_run_cmd($list_cmd);
+		$self->_check_result($list_result, "Failed to find specified files in tarball: %s") unless $list_result->{exit_code} == 0;
 		my $files_escaped = join(' ', map { $self->_shell_escape($_) } @extract_files);
 		my $untar_cmd = "sudo mkdir -p $dest_escaped && sudo tar -xzf $file_escaped -C $dest_escaped$strip $files_escaped";
 		my $result = $self->_run_cmd($untar_cmd);
-		$self->_check_result($result, "Failed to extract specified files from tarball to $destination: %s");
+		$self->_check_result($result, "Failed to extract specified files from tarball to $destination: %s") unless $result->{exit_code} == 0;
 	} else {
 		# Extract entire tarball
 		info({pending => !$self->{opts}{verbose}}, "\nExtracting tarball to %s...", $destination);
