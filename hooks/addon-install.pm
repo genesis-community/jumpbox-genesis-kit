@@ -291,7 +291,7 @@ sub _verify_sha {
 
 	info("Verifying SHA256 checksum...");
 	my $file_escaped = $self->_shell_escape($remote_file);
-	my $sha_cmd = "sha256sum $file_escaped | awk '{print \$1}'";
+	my $sha_cmd = "sha256sum $file_escaped";
 
 	# Always run non-interactively to capture hash output, even in verbose mode
 	my $result = $self->bosh->run_on_instance(
@@ -301,8 +301,8 @@ sub _verify_sha {
 	);
 	$self->_check_result($result, "Failed to compute SHA256 checksum of downloaded file: %s");
 
-	my $out = $result->{stdout};
-	chomp($out) if $out;
+	my $out = $result->{stdout}//'';
+	$out =~ s/\s+.*$//ms; # Extract just the hash from sha256sum output
 
 	if ($out ne $self->{opts}{sha}) {
 		# Optionally clean up the bad file
@@ -478,11 +478,18 @@ sub _run_post_install {
 	# Execute script
 	info("Executing post-install script on jumpbox...");
 	my $exec_result = $self->_run_cmd($script_escaped, interactive => $self->{opts}{verbose} ? 1 : 0);
-	$self->_check_result($exec_result, "Post-install script execution failed: %s");
 
 	# Remove script
 	my $rm_cmd = "sudo rm -f $script_escaped";
 	$self->_run_cmd($rm_cmd);
+
+	# Check execution result after temp script cleanup, which will bail if failed
+	$self->_check_result($exec_result, "Post-install script execution failed: %s");
+
+	if ($result->{stdout}) {
+		info("Post-install script output:\n%s", $result->{stdout});
+	}
+
 	info("Post-install script completed successfully.");
 }
 # }}}
