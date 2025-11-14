@@ -157,7 +157,10 @@ sub _run_cmd {
 # _check_result - Verify command result and bail on failure {{{
 sub _check_result {
 	my ($self, $result, $error_msg) = @_;
-	return if $result->{exit_code} == 0;
+	if ($result->{exit_code} == 0) {
+		info("#g{ok}") unless $self->{opts}{verbose};
+		return;
+	}
 
 	# In verbose mode, user already saw the output
 	if ($self->{opts}{verbose}) {
@@ -174,6 +177,7 @@ sub _check_result {
 	push @error_parts, "Stdout: $result->{stdout}" if $result->{stdout};
 
 	my $error_details = @error_parts ? join("\n", @error_parts) : '<no output>';
+	info("#r{failed!}");
 	bail($error_msg, $error_details);
 }
 # }}}
@@ -215,7 +219,7 @@ sub _parse_url {
 sub _download_http {
 	my ($self, $url, $remote_tmp_file) = @_;
 
-	info("Downloading file from %s to jumpbox...", $url);
+	info({pending => !$self->{opts}{verbose}}, "Downloading file from %s to jumpbox...", $url);
 	my $url_escaped = $self->_shell_escape($url);
 	my $file_escaped = $self->_shell_escape($remote_tmp_file);
 	my $verbose = $self->{opts}{verbose} ? 's' : '';
@@ -234,7 +238,7 @@ sub _download_s3 {
 	my ($bucket, $key) = $url =~ m{^s3://([^/]+)/(.*)$};
 	bail("Invalid S3 URL format. Must be s3://bucket-name/path/to/file") unless $bucket && $key;
 
-	info("Downloading file from S3 %s to jumpbox...", $url);
+	info({pending => !$self->{opts}{verbose}}, "Downloading file from S3 %s to jumpbox...", $url);
 	my $file_escaped = $self->_shell_escape($remote_tmp_file);
 	my $s3path_escaped = $self->_shell_escape("$bucket/$key");
 	my $cmd = "s3 get --to $file_escaped $s3path_escaped";
@@ -247,7 +251,7 @@ sub _download_s3 {
 sub _upload_local {
 	my ($self, $url, $remote_tmp_file) = @_;
 
-	info("Uploading local file %s to jumpbox...", $url);
+	info({pending => !$self->{opts}{verbose}}, "Uploading local file %s to jumpbox...", $url);
 	bail("Local file %s does not exist", $url) unless -f $url;
 
 	my $result = $self->bosh->upload_to_instance(
@@ -257,6 +261,7 @@ sub _upload_local {
 	);
 
 	unless ($result) {
+		info("#y{unconfirmed}") unless $self->{opts}{verbose};
 		info("Warning: file upload completed but no confirmation received");
 		return;
 	}
@@ -269,17 +274,18 @@ sub _upload_local {
 sub _verify_file_exists {
 	my ($self, $remote_file) = @_;
 
-	info("Verifying file was transferred successfully...");
+	info({pending => !$self->{opts}{verbose}}, "Verifying file was transferred successfully...");
 
 	# test -s returns true if file exists and has size > 0
 	my $file_escaped = $self->_shell_escape($remote_file);
 	my $result = $self->_run_cmd("test -s $file_escaped");
 
 	if ($result->{exit_code} != 0) {
+		info("#r{failed!}") unless $self->{opts}{verbose};
 		bail("File was not successfully transferred or is empty: %s", $remote_file);
 	}
 
-	info("File verified on jumpbox");
+	info("%s", $self->{verbose} ? "File verified on jumpbox" : "#g{ok}");
 }
 # }}}
 
@@ -289,7 +295,7 @@ sub _verify_sha {
 
 	return unless $self->{opts}{sha};
 
-	info("Verifying SHA256 checksum...");
+	info({pending => !$self->{opts}{verbose}}, "Verifying SHA256 checksum...");
 	my $file_escaped = $self->_shell_escape($remote_file);
 	my $sha_cmd = "sha256sum $file_escaped";
 
@@ -305,6 +311,7 @@ sub _verify_sha {
 	$out =~ s/\s+.*$//ms; # Extract just the hash from sha256sum output
 
 	if ($out ne $self->{opts}{sha}) {
+		info("#r{failed!}") unless $self->{opts}{verbose};
 		# Optionally clean up the bad file
 		if ($self->{opts}{'cleanup-on-failure'}) {
 			my $rm_cmd = "rm -f $file_escaped";
@@ -322,7 +329,7 @@ sub _verify_sha {
 			);
 		}
 	}
-	info("SHA256 checksum verified.");
+	info("%s", $self->{opts}{verbose} ? "SHA256 checksum verified." : "#g{ok}");
 }
 # }}}
 
@@ -379,9 +386,9 @@ sub _install_tarball {
 	if (my @extract_files = @{$self->{opts}{'extract-file'} || []}) {
 		# Extract specific files
 		info(
-			"Extracting specified files from tarball to %s: %s...",
+			"\nExtracting specified files from tarball to %s:%s.",
 			$destination,
-			join(", ", @extract_files)
+			join("", map {"\n  - "} @extract_files)
 		);
 		# Test that the files are actually in the tarball
 		my $list_cmd = "tar -tzf $file_escaped$strip ".join(' ', map { $self->_shell_escape($_) } @extract_files);
@@ -392,17 +399,17 @@ sub _install_tarball {
 		$self->_check_result($result, "Failed to extract specified files from tarball to $destination: %s");
 	} else {
 		# Extract entire tarball
-		info("Extracting tarball to %s...", $destination);
+		info({pending => !$self->{opts}{verbose}}, "\nExtracting tarball to %s...", $destination);
 		my $untar_cmd = "sudo mkdir -p $dest_escaped && sudo tar -xzf $file_escaped -C $dest_escaped$strip";
 		my $result = $self->_run_cmd($untar_cmd);
 		$self->_check_result($result, "Failed to extract tarball to $destination: %s");
+		info("%s", $self->{verbose} ? "Tarball extracted successfully." : "#g{ok}");
 	}
-	info("Extraction complete.");
 
 	# Clean up
 	my $rm_cmd = "rm -f $file_escaped";
 	$self->_run_cmd($rm_cmd);
-	info("Installation complete.");
+	info("Installation complete.\n");
 }
 # }}}
 
@@ -415,7 +422,7 @@ sub _install_file {
 	# Validate destination path for security
 	$self->_validate_destination($destination);
 
-	info("Moving file to %s...", $destination);
+	info({pending => !$self->{opts}{verbose}}, "\nMoving file to %s...", $destination);
 	my $file_escaped = $self->_shell_escape($remote_file);
 	my $dest_escaped = $self->_shell_escape($destination);
 	# Create destination directory if needed
@@ -428,7 +435,7 @@ sub _install_file {
 	$self->_check_result($result, "Failed to move file to $destination: %s");
 	# Set permissions if requested
 	if (defined $self->{opts}{permissions}) {
-		info("Setting file permissions to %s...", $self->{opts}{permissions});
+		info({pending => !$self->{opts}{verbose}}, "Setting file permissions to %s...", $self->{opts}{permissions});
 		my $chmod_cmd = "sudo chmod ".$self->{opts}{permissions}." $dest_escaped";
 		my $chmod_result = $self->_run_cmd($chmod_cmd);
 		$self->_check_result($chmod_result, "Failed to set permissions on $destination: %s");
@@ -456,7 +463,7 @@ sub _run_post_install {
 
 	# Upload script to jumpbox
 	my $remote_script = "/tmp/post_install_".time().".sh";
-	info("Uploading post-install script to jumpbox...");
+	info({pending => !$self->{opts}{verbose}}, "Uploading post-install script to jumpbox...");
 	my $result = $self->bosh->upload_to_instance(
 		local_path => $local_file,
 		remote_path => $remote_script,
@@ -464,6 +471,7 @@ sub _run_post_install {
 		interactive => $self->{opts}{verbose} ? 1 : 0
 	);
 	unless ($result) {
+		info("#y{unconfirmed}") unless $self->{opts}{verbose};
 		info("Warning: post-install script upload completed but no confirmation received");
 		return;
 	}
@@ -476,7 +484,7 @@ sub _run_post_install {
 	my $mv_result = $self->_run_cmd($mv_cmd);
 
 	# Execute script
-	info("Executing post-install script on jumpbox...");
+	info({pending => !$self->{opts}{verbose}}, "Executing post-install script on jumpbox...");
 	my $exec_result = $self->_run_cmd($script_escaped, interactive => $self->{opts}{verbose} ? 1 : 0);
 
 	# Remove script
@@ -486,8 +494,8 @@ sub _run_post_install {
 	# Check execution result after temp script cleanup, which will bail if failed
 	$self->_check_result($exec_result, "Post-install script execution failed: %s");
 
-	if ($result->{stdout}) {
-		info("Post-install script output:\n%s", $result->{stdout});
+	if ($exec_result->{stdout} && !$self->{opts}{verbose}) {
+		info("Post-install script output:\n%s", $exec_result->{stdout});
 	}
 
 	info("Post-install script completed successfully.");
