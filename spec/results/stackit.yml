@@ -1,7 +1,10 @@
 exodus:
   bosh: stackit
   features: ""
+  iaas: null
   is_director: false
+  scale: null
+  services: null
   use_create_env: false
 instance_groups:
 - azs:
@@ -16,6 +19,7 @@ instance_groups:
       jumpbox:
         banner: null
         bashrc: null
+        distinct_bosh_user: false
         env:
           TMPDIR: /var/vcap/data/root_tmp
         hostname: stackit-jumpbox
@@ -28,10 +32,6 @@ instance_groups:
     release: jumpbox
   - name: inventory
     release: jumpbox
-  - name: toolbelt
-    release: toolbelt
-  - name: toolbelt-quick
-    release: toolbelt
   name: jumpbox
   networks:
   - name: jumpbox
@@ -43,9 +43,9 @@ instance_groups:
 name: stackit-jumpbox
 releases:
 - name: jumpbox
-  sha1: 37711c2d66ef574a304280e2f538df05712439f8
-  url: https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/download/v5.0.2/jumpbox-5.0.2.tgz
-  version: 5.0.2
+  sha1: 3257fd5b24c624889897f2104672e7cca49fc82e
+  url: https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/download/v5.1.3/jumpbox-5.1.3.tgz
+  version: 5.1.3
 - name: toolbelt
   sha1: 9ef47e3aa0f9b22a4186df675f3c223fe3a6d847
   url: https://github.com/cloudfoundry-community/toolbelt-boshrelease/releases/download/v4.0.0/toolbelt-4.0.0.tgz
