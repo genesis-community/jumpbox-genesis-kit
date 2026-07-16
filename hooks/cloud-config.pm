@@ -38,6 +38,9 @@ sub perform {
 							'net_id' => $self->network_reference('id'), # TODO: $self->subnet_reference('net_id'),
 							'security_groups' => $self->network_reference('sgs', 'get_sgs_by_names', 'ocfp', 'default'),
 						},
+						pve => {
+							'bridge' => scalar($self->env->lookup('bosh-configs.cpi.pve_network_bridge', 'lvnet001')),
+						},
 					},
 			},
 			)
@@ -62,6 +65,12 @@ sub perform {
 						'boot_from_volume' => $self->TRUE,
 						'root_disk' => {'size' => 20}, # in gigabytes
 					},
+					pve => {
+						'cpu'            => scalar($self->env->lookup('bosh-configs.cpi.pve_jumpbox_cpu',  $self->for_scale({ dev => 2, prod => 4 }, 2))),
+						'ram'            => scalar($self->env->lookup('bosh-configs.cpi.pve_jumpbox_ram',  $self->for_scale({ dev => 4096, prod => 8192 }, 4096))),
+						'disk'           => scalar($self->env->lookup('bosh-configs.cpi.pve_jumpbox_disk', $self->for_scale({ dev => 32768, prod => 65536 }, 32768))),
+						'network_bridge' => scalar($self->env->lookup('bosh-configs.cpi.pve_network_bridge', 'lvnet001')),
+					},
 				},
 			),
 		],
@@ -85,6 +94,10 @@ sub perform {
               dev  => 'storage_premium_perf6',
               prod => 'storage_premium_perf8'
             })
+					},
+					pve => {
+						'storage'     => scalar($self->env->lookup('bosh-configs.cpi.pve_disk_storage', 'zfs-1')),
+						'disk_format' => scalar($self->env->lookup('bosh-configs.cpi.pve_disk_format', 'raw')),
 					},
 				},
 			),
