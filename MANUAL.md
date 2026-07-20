@@ -296,23 +296,23 @@ managing users and their SSH keys from various sources.
 
 ```bash
 # Add a user's SSH keys from GitHub (default source)
-genesis do my-env -- users add username
+genesis my-env do users add username
 
 # Add a user's SSH keys from GitLab
-genesis do my-env -- users add gitlab/username
+genesis my-env do users add gitlab/username
 
 # Add keys from a local public key file
-genesis do my-env -- users add /path/to/username.pub
+genesis my-env do users add /path/to/username.pub
 
 # Add keys from a directory containing public key files
-genesis do my-env -- users add /path/to/keys/directory/
+genesis my-env do users add /path/to/keys/directory/
 ```
 
 ### Removing Users
 
 ```bash
 # Remove a user
-genesis do my-env -- users remove username
+genesis my-env do users remove username
 ```
 
 ### Key Source Options
@@ -413,29 +413,29 @@ For detailed STACKIT configuration, see the [STACKIT Configuration Guide](docs/i
 
 - `inventory` - Run the inventory errand against the deployment.
   ```
-  genesis do my-env -- inventory
+  genesis my-env do inventory
   ```
 
 - `ssh` - SSH into the jumpbox interactively.
   ```
-  genesis do my-env -- ssh
+  genesis my-env do ssh
   ```
 
 - `who` - SSH into the jumpbox and determine who is logged in.
   ```
-  genesis do my-env -- who
+  genesis my-env do who
   ```
 
 - `users` - Manage user accounts and SSH keys from various sources.
   ```
   # Add users
-  genesis do my-env -- users add github/username
-  genesis do my-env -- users add gitlab/username
-  genesis do my-env -- users add /path/to/key.pub
-  genesis do my-env -- users add /path/to/keys/dir/
+  genesis my-env do users add github/username
+  genesis my-env do users add gitlab/username
+  genesis my-env do users add /path/to/key.pub
+  genesis my-env do users add /path/to/keys/dir/
   
   # Remove users
-  genesis do my-env -- users remove username
+  genesis my-env do users remove username
   ```
 
 ## OpenVPN Addons
@@ -445,30 +445,30 @@ If the `openvpn` feature is enabled, the following addons are also available:
 - `certs` - List all the X.509 VPN certificates for the users registered on 
   this jumpbox.
   ```
-  genesis do my-env -- certs
+  genesis my-env do certs
   ```
 
 - `issue-cert <user>` - Issue an X.509 certificate to a user, so that they
   can connect and authenticate to the VPN.
   ```
-  genesis do my-env -- issue-cert username
+  genesis my-env do issue-cert username
   ```
 
 - `revoke-cert <user>` - Revoke an issued X.509 VPN certificate.
   ```
-  genesis do my-env -- revoke-cert username
+  genesis my-env do revoke-cert username
   ```
 
 - `renew-cert <user>` - Renew the lifetime of an existing X.509 VPN
   certificate, without changing the key that the user has.
   ```
-  genesis do my-env -- renew-cert username
+  genesis my-env do renew-cert username
   ```
 
 - `renew-all-certs` - Renew the lifetime of all existing X.509 VPN
   certificates, without changing the keys.
   ```
-  genesis do my-env -- renew-all-certs
+  genesis my-env do renew-all-certs
   ```
 
 - `reissue-cert <user>` - Reissue an X.509 VPN certificate, and
@@ -476,14 +476,14 @@ If the `openvpn` feature is enabled, the following addons are also available:
   example, a key has been lost or compromised. The old
   certificate will be revoked.
   ```
-  genesis do my-env -- reissue-cert username
+  genesis my-env do reissue-cert username
   ```
   
 - `generate-vpn-config <user>` - Generate a client certificate
   (if missing) and a new (or updated) openvpn config file for a 
   given user.
   ```
-  genesis do my-env -- generate-vpn-config username
+  genesis my-env do generate-vpn-config username
   ```
 
 ## WireGuard Addons
@@ -495,20 +495,20 @@ If the `wireguard` feature is enabled, the following addons are also available:
   the lowest free tunnel address, and stores everything in vault.  The
   peer becomes active on the next deploy.
   ```
-  genesis do my-env -- add-peer laptop
+  genesis my-env do add-peer laptop
   ```
 
 - `remove-peer <name>` (alias `rp`) - Revoke a peer.  Its registry
   entry moves to the `revoked/` archive and the next deploy drops it
   from the interface.
   ```
-  genesis do my-env -- remove-peer laptop
+  genesis my-env do remove-peer laptop
   ```
 
 - `list-peers` (alias `lp`) - List registered peers with their tunnel
   addresses and allowed IPs.
   ```
-  genesis do my-env -- list-peers
+  genesis my-env do list-peers
   ```
 
 - `generate-wg-config [-q] <name>` (alias `gw`) - Emit a wg-quick
@@ -516,7 +516,7 @@ If the `wireguard` feature is enabled, the following addons are also available:
   it as a terminal QR code (requires `qrencode`) for direct import
   into mobile clients.
   ```
-  genesis do my-env -- generate-wg-config laptop
+  genesis my-env do generate-wg-config laptop
   ```
 
 For detailed information on addon commands, see the [Addon Commands documentation](docs/addons.md).
@@ -575,7 +575,7 @@ If your jumpbox deployment is locked and cannot be updated:
 
 1. Check if any users are currently logged in:
    ```
-   genesis do my-env -- who
+   genesis my-env do who
    ```
 
 2. If necessary, notify users and wait for them to log out before

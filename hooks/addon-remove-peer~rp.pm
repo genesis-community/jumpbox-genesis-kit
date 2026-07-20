@@ -27,7 +27,7 @@ sub cmd_details {
 	return
 	"Revoke a WireGuard peer: its registry entry moves to the revoked/\n".
 	"archive and the next deploy drops it from the interface config.\n".
-	"Usage: genesis do <env> -- remove-peer <name>\n".
+	"Usage: genesis <env> do remove-peer <name>\n".
 	"This addon requires the 'wireguard' feature to be enabled.\n";
 }
 
@@ -37,7 +37,7 @@ sub perform {
 	$self->require_wireguard();
 
 	my @args = @{$self->{args}};
-	bail("USAGE: genesis do <env> -- remove-peer <name>")
+	bail("USAGE: genesis <env> do remove-peer <name>")
 		unless @args == 1;
 
 	my ($name) = @args;

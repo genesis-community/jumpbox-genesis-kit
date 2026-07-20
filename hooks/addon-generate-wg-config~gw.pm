@@ -28,7 +28,7 @@ sub init {
 sub cmd_details {
 	return
 	"Emit a wg-quick client configuration for a registered peer.\n".
-	"Usage: genesis do <env> -- generate-wg-config [-q] <name>\n".
+	"Usage: genesis <env> do generate-wg-config [-q] <name>\n".
 	"Options:\n".
 	"  -q  Also render the config as a terminal QR code (requires qrencode)\n".
 	"The endpoint comes from params.wireguard_endpoint, falling back to\n".
@@ -43,7 +43,7 @@ sub perform {
 
 	my %opts = $self->parse_options([ 'qr|q' ]);
 	my @args = @{$self->{args}};
-	bail("USAGE: genesis do <env> -- generate-wg-config [-q] <name>")
+	bail("USAGE: genesis <env> do generate-wg-config [-q] <name>")
 		unless @args == 1;
 	my ($name) = @args;
 
@@ -52,7 +52,7 @@ sub perform {
 		'safe --quiet exists "$1"', $peer_path);
 	bail(
 		"Peer '%s' is not registered. Add it with:\n".
-		"  genesis do %s -- add-peer %s",
+		"  genesis %s do add-peer %s",
 		$name, $ENV{GENESIS_ENVIRONMENT}, $name
 	) if $exists_rc != 0;
 

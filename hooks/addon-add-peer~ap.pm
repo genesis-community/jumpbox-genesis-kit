@@ -29,7 +29,7 @@ sub cmd_details {
 	"Generates a keypair and preshared key, allocates the lowest free\n".
 	"tunnel address, and stores everything in vault. The peer becomes\n".
 	"active on the next deploy (applied via wg syncconf - no tunnel drop).\n".
-	"Usage: genesis do <env> -- add-peer <name> [extra-allowed-cidr ...]\n".
+	"Usage: genesis <env> do add-peer <name> [extra-allowed-cidr ...]\n".
 	"This addon requires the 'wireguard' feature to be enabled.\n";
 }
 
@@ -39,7 +39,7 @@ sub perform {
 	$self->require_wireguard();
 
 	my @args = @{$self->{args}};
-	bail("USAGE: genesis do <env> -- add-peer <name> [extra-allowed-cidr ...]")
+	bail("USAGE: genesis <env> do add-peer <name> [extra-allowed-cidr ...]")
 		unless @args;
 
 	my ($name, @extra_cidrs) = @args;
@@ -55,7 +55,7 @@ sub perform {
 		'safe --quiet exists "$1"', $peer_path);
 	bail(
 		"Peer '%s' already exists. Remove it first with:\n".
-		"  genesis do %s -- remove-peer %s",
+		"  genesis %s do remove-peer %s",
 		$name, $ENV{GENESIS_ENVIRONMENT}, $name
 	) if $exists_rc == 0;
 
@@ -80,7 +80,7 @@ sub perform {
 	info("  #G{genesis deploy $ENV{GENESIS_ENVIRONMENT}}");
 	info("");
 	info("Then emit its client config with:");
-	info("  #G{genesis do $ENV{GENESIS_ENVIRONMENT} -- generate-wg-config %s}", $name);
+	info("  #G{genesis $ENV{GENESIS_ENVIRONMENT} do generate-wg-config %s}", $name);
 
 	return $self->done();
 }
