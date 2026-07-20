@@ -181,6 +181,47 @@ params:
 
   - `vpn_extra_client_configs` - List of additional OpenVPN client configuration options.
 
+- `wireguard` - Provides a WireGuard VPN endpoint on the jumpbox.
+  Unlike OpenVPN, WireGuard uses base64 Curve25519 keypairs instead
+  of X.509 certificates; peers (clients) are managed through
+  vault-backed addons and take effect on redeploy via `wg syncconf`,
+  which never interrupts established sessions.
+
+  Requires an `ubuntu-noble` stemcell (the wireguard BOSH release
+  depends on the in-kernel WireGuard module).
+
+  The `openvpn` and `wireguard` features may be enabled together;
+  the kit merges their iptables FORWARD/POSTROUTING rules when both
+  are active.
+
+  Activating this feature also activates the following parameters:
+
+  - `wireguard_cidr` - Tunnel network for clients, in CIDR notation.
+    Defaults to `10.20.31.0/24` (distinct from OpenVPN's default
+    `172.31.255.0/24` so both VPNs can coexist).
+
+  - `wireguard_server_address` - The server's in-tunnel address CIDR.
+    Defaults to `10.20.31.1/24`; keep it the `.1` of `wireguard_cidr`.
+
+  - `wireguard_interface` - Interface name.  Defaults to `wg0`.
+
+  - `wireguard_port` - UDP listen port.  Defaults to `51820`.  This
+    port must be reachable from clients (security group or firewall
+    rule — the kit opens nothing for you).
+
+  - `wireguard_endpoint` - Public host or host:port clients dial.
+    Falls back to the jumpbox VM's IP when unset.
+
+  - `wireguard_routed_networks` - Networks advertised to clients
+    (AllowedIPs in generated client configs), in CIDR notation.
+
+  - `wireguard_dns` - DNS servers written into generated client
+    configs.
+
+  - `wireguard_iptables_forward` - iptables FORWARD rules required
+    for WireGuard traffic to flow.  Automatically generated via
+    `genesis new`, but can be modified or added to.
+
 # User Management
 
 The Jumpbox Genesis Kit provides flexible options for managing users.
@@ -443,6 +484,39 @@ If the `openvpn` feature is enabled, the following addons are also available:
   given user.
   ```
   genesis do my-env -- generate-vpn-config username
+  ```
+
+## WireGuard Addons
+
+If the `wireguard` feature is enabled, the following addons are also available:
+
+- `add-peer <name> [extra-allowed-cidr ...]` (alias `ap`) - Register a
+  new WireGuard peer: generates a keypair and preshared key, allocates
+  the lowest free tunnel address, and stores everything in vault.  The
+  peer becomes active on the next deploy.
+  ```
+  genesis do my-env -- add-peer laptop
+  ```
+
+- `remove-peer <name>` (alias `rp`) - Revoke a peer.  Its registry
+  entry moves to the `revoked/` archive and the next deploy drops it
+  from the interface.
+  ```
+  genesis do my-env -- remove-peer laptop
+  ```
+
+- `list-peers` (alias `lp`) - List registered peers with their tunnel
+  addresses and allowed IPs.
+  ```
+  genesis do my-env -- list-peers
+  ```
+
+- `generate-wg-config [-q] <name>` (alias `gw`) - Emit a wg-quick
+  client configuration for a registered peer.  With `-q`, also render
+  it as a terminal QR code (requires `qrencode`) for direct import
+  into mobile clients.
+  ```
+  genesis do my-env -- generate-wg-config laptop
   ```
 
 For detailed information on addon commands, see the [Addon Commands documentation](docs/addons.md).
