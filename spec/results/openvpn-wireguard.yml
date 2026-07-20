@@ -1,0 +1,126 @@
+exodus:
+  bosh: openvpn-wireguard
+  features: openvpn,wireguard
+  iaas: null
+  is_director: false
+  scale: null
+  services: null
+  use_create_env: false
+instance_groups:
+- azs:
+  - z1
+  env:
+    bosh:
+      remove_dev_tools: true
+  instances: 1
+  jobs:
+  - name: jumpbox
+    properties:
+      jumpbox:
+        banner: null
+        bashrc: null
+        distinct_bosh_user: false
+        env:
+          TMPDIR: /var/vcap/data/root_tmp
+        hostname: openvpn-wireguard-jumpbox
+        hosts: []
+        users:
+        - name: test-user
+          shell: /bin/bash
+          ssh_keys:
+          - ssh-rsa 1234567890qwertyuiopasdfghjklzxcvbnm
+    release: jumpbox
+  - name: inventory
+    release: jumpbox
+  - name: openvpn
+    properties:
+      cipher: AES-256-CBC
+      compress: auto
+      dh_pem: <!{meta.vault}/openvpn/dh_params:dhparam-pem!>
+      extra_configs: []
+      port: 443
+      protocol: tcp
+      push_dns:
+      - 1.2.3.4
+      push_dns_search_domains:
+      - test.dns.com
+      push_routes:
+      - 10.1.0.0 255.255.0.0
+      server: 172.31.255.0 255.255.255.0
+      tls_crl: <!{meta.vault}/openvpn/certs/ca:crl!>
+      tls_server:
+        ca: <!{meta.vault}/openvpn/certs/ca:certificate!>
+        certificate: <!{meta.vault}/openvpn/certs/server:certificate!>
+        private_key: <!{meta.vault}/openvpn/certs/server:key!>
+      tls_version_min: "1.2"
+    release: openvpn
+  - name: iptables
+    properties:
+      iptables:
+        filter:
+          FORWARD:
+          - -s 172.31.255.0/24 -d 10.0.0.0/8 -m conntrack --ctstate NEW -j ACCEPT
+            -m comment --comment 'vpn -> lan'
+          - -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+        nat:
+          POSTROUTING:
+          - -s 172.31.255.0/255.255.255.0 -d 0/0 -j MASQUERADE
+          - -s 10.20.31.0/24 -d 0/0 -j MASQUERADE
+    release: networking
+  - name: bpm
+    release: bpm
+  - name: wireguard
+    properties:
+      wireguard:
+        addresses:
+        - 10.20.31.1/24
+        forwarding:
+          ipv4: true
+        interface: wg0
+        listen_port: 51820
+        peers: []
+        private_key: <!{meta.vault}/wireguard/server:private!>
+        public_key: <!{meta.vault}/wireguard/server:public!>
+    release: wireguard
+  name: jumpbox
+  networks:
+  - name: jumpbox
+    static_ips:
+    - 10.99.0.16
+  persistent_disk_type: jumpbox
+  stemcell: default
+  vm_type: jumpbox
+name: openvpn-wireguard-jumpbox
+releases:
+- name: jumpbox
+  sha1: 3257fd5b24c624889897f2104672e7cca49fc82e
+  url: https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/download/v5.1.3/jumpbox-5.1.3.tgz
+  version: 5.1.3
+- name: toolbelt
+  sha1: 9ef47e3aa0f9b22a4186df675f3c223fe3a6d847
+  url: https://github.com/cloudfoundry-community/toolbelt-boshrelease/releases/download/v4.0.0/toolbelt-4.0.0.tgz
+  version: 4.0.0
+- name: openvpn
+  sha1: bd35e9bc2b35a3efb7615257c32674e8848137d1
+  url: https://github.com/cloudfoundry-community/openvpn-bosh-release/releases/download/v5.8.5/openvpn-boshrelease-5.8.5.tar.gz
+  version: 5.8.5
+- name: networking
+  sha1: 9b5f9d27917c3754e492470ac6c9af80d62963db
+  url: http://bosh.io/d/github.com/cloudfoundry/networking-release?v=9
+  version: 9
+- name: wireguard
+  version: 0.1.0
+- name: bpm
+  sha1: sha256:51f2eab4b59939db733beb8f7905e461a732cc29d85e54f151f576cd5bf0c414
+  url: https://bosh.io/d/github.com/cloudfoundry/bpm-release?v=1.4.22
+  version: 1.4.22
+stemcells:
+- alias: default
+  os: ubuntu-jammy
+  version: latest
+update:
+  canaries: 1
+  canary_watch_time: 1000-60000
+  max_in_flight: 4
+  serial: false
+  update_watch_time: 1000-60000

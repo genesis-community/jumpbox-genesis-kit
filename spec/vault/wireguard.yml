@@ -1,0 +1,3 @@
+secret/wireguard/jumpbox/wireguard/server:
+  private: <!{meta.vault}/wireguard/server:private!>
+  public: <!{meta.vault}/wireguard/server:public!>

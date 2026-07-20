@@ -1,0 +1,32 @@
+---
+kit:
+  name:    dev
+  version: latest
+  features:
+    - wireguard
+
+genesis:
+  env:      wireguard-all-params
+
+params:
+  availability_zones: [z1]
+
+  wireguard_cidr: 10.9.8.0/24
+  wireguard_server_address: 10.9.8.1/24
+  wireguard_interface: wg1
+  wireguard_port: 51821
+  wireguard_endpoint: vpn.example.com:51821
+  wireguard_routed_networks:
+    - 10.4.0.0/16
+  wireguard_dns:
+    - 1.2.3.4
+  wireguard_iptables_forward:
+    - -s 10.9.8.0/24 -d 10.4.0.0/16 -m conntrack --ctstate NEW -j ACCEPT -m comment --comment 'wg -> lan'
+    - -s 10.4.0.0/16 -d 10.9.8.0/24 -m conntrack --ctstate NEW -j ACCEPT -m comment --comment 'lan -> wg'
+    - -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+  users:
+    - name: test-user
+      shell: /bin/bash
+      ssh_keys:
+        - ssh-rsa 1234567890qwertyuiopasdfghjklzxcvbnm
