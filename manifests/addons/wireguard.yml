@@ -1,0 +1,51 @@
+---
+meta:
+  # Full CIDR of the server's in-tunnel address — .1 of wireguard_cidr
+  # by convention (new.pm keeps the two consistent).
+  wireguard_server_address: (( grab params.wireguard_server_address ))
+
+params:
+  # Distinct from openvpn's 172.31.255.0/24 so both VPNs can coexist.
+  wireguard_cidr: 10.20.31.0/24
+  wireguard_server_address: 10.20.31.1/24
+  wireguard_interface: wg0
+  wireguard_port: 51820
+  # Public endpoint (host or host:port) clients dial. Provisioning the
+  # public IP / DNS is terraform's job; this param just carries it into
+  # generate-wg-config.
+  wireguard_endpoint: ""
+  # FORWARD chain rules for the colocated iptables job. new.pm builds
+  # conntrack pairs per routed network; the default only permits
+  # established/related flows.
+  wireguard_iptables_forward:
+  - -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+instance_groups:
+- name: jumpbox
+  jobs:
+  - name: bpm
+    release: bpm
+  - name: wireguard
+    release: wireguard
+    properties:
+      wireguard:
+        interface: (( grab params.wireguard_interface ))
+        addresses:
+        - (( grab meta.wireguard_server_address ))
+        listen_port: (( grab params.wireguard_port ))
+        private_key: (( vault meta.vault "/wireguard/server:private" ))
+        public_key: (( vault meta.vault "/wireguard/server:public" ))
+        forwarding:
+          ipv4: true
+        # Peers are enumerated from the vault registry at blueprint time
+        # into manifests/peers.dynamic.yml (see addon add-peer).
+        peers: []
+  - name: iptables
+    release: networking
+    properties:
+      iptables:
+        filter:
+          FORWARD: (( grab params.wireguard_iptables_forward ))
+        nat:
+          POSTROUTING:
+          - (( concat "-s " params.wireguard_cidr " -d 0/0 -j MASQUERADE" ))

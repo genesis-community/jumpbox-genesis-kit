@@ -8,7 +8,14 @@ use v5.20;
 BEGIN {push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'/.genesis/lib'}
 use parent qw(Genesis::Hook::Blueprint);
 
-use Genesis qw/bail warning mkfile_or_fail/;
+use Genesis qw/bail warning mkfile_or_fail run/;
+
+# Include WireGuard key/peer helpers from mixin
+BEGIN {
+  require File::Basename;
+  my $mixin_file = File::Basename::dirname(__FILE__) . '/lib/_wireguard_keys.pm';
+  do $mixin_file or die "Failed to include hook mixin $mixin_file: $!";
+}
 
 # init - Initialize the hook {{{
 sub init {
@@ -56,6 +63,26 @@ sub perform {
         manifests/releases/openvpn.yml
         manifests/releases/networking.yml
       ));
+    } elsif ($feature eq 'wireguard') {
+      $self->add_files(qw(
+        manifests/addons/wireguard.yml
+        manifests/releases/wireguard.yml
+        manifests/releases/bpm.yml
+      ));
+      $self->add_files('manifests/releases/networking.yml')
+        unless $self->want_feature('openvpn');
+
+      # Server keypair: the credentials DSL cannot generate Curve25519,
+      # so ensure it here (no-op when the pair already exists in vault).
+      $self->_ensure_server_keys;
+
+      # Peer registry: enumerate vault peers into a manifest fragment
+      # with (( vault )) references. Absent when there are no peers yet.
+      if (my $peers_fragment = $self->_render_peers_fragment('jumpbox')) {
+        my $peers_file = "manifests/peers.dynamic.yml";
+        mkfile_or_fail($self->env->kit->path($peers_file), 0644, $peers_fragment);
+        $self->add_files($peers_file);
+      }
     } elsif ($feature =~ /^(bastion|dev-tools)$/) {
       $self->add_files("manifests/${feature}.yml");
     } elsif ($feature eq 'ocfp') {
@@ -68,6 +95,13 @@ sub perform {
       push @invalid, $feature;
     }
   }
+
+  # Both VPNs colocate the networking release's iptables job, whose
+  # FORWARD/POSTROUTING lists would otherwise collide (spruce merges
+  # jobs by name, last file wins). The combined overlay concatenates
+  # both rule sets; it must merge after both addon files.
+  $self->add_files('manifests/addons/openvpn-wireguard.yml')
+    if $self->want_feature('openvpn') && $self->want_feature('wireguard');
 
   if (@invalid) {
     my $noun = @invalid == 1 ? 'feature' : 'features';

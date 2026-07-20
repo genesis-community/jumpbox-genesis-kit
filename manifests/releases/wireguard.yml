@@ -1,0 +1,7 @@
+releases:
+- name: wireguard
+  version: 0.1.0
+  # Unpublished release — build and upload locally until a final release
+  # is published with a downloadable URL and sha256:
+  #   git clone git@github.com:cloudfoundry-community/wireguard-boshrelease.git
+  #   bosh create-release --final --version 0.1.0 && bosh upload-release
