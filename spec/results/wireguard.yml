@@ -76,6 +76,8 @@ releases:
   url: https://github.com/cloudfoundry-community/toolbelt-boshrelease/releases/download/v4.0.0/toolbelt-4.0.0.tgz
   version: 4.0.0
 - name: wireguard
+  sha1: c9797384280404c32c5858825f09a535edc23835
+  url: https://github.com/cloudfoundry-community/wireguard-boshrelease/releases/download/v0.1.0/wireguard-0.1.0.tgz
   version: 0.1.0
 - name: bpm
   sha1: sha256:51f2eab4b59939db733beb8f7905e461a732cc29d85e54f151f576cd5bf0c414
