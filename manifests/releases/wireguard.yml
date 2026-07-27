@@ -1,0 +1,5 @@
+releases:
+- name: wireguard
+  version: 0.1.0
+  url: https://github.com/cloudfoundry-community/wireguard-boshrelease/releases/download/v0.1.0/wireguard-0.1.0.tgz
+  sha1: c9797384280404c32c5858825f09a535edc23835

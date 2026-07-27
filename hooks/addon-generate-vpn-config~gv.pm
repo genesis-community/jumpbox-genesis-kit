@@ -26,7 +26,7 @@ sub init {
 sub cmd_details {
 	return
 	"Generate a client certificate (if missing) and an openvpn config file for a given user.\n".
-	"Usage: genesis do <env> -- generate-vpn-config [-f] user\@email.addr.ess\n".
+	"Usage: genesis <env> do generate-vpn-config [-f] user\@email.addr.ess\n".
 	"Options:\n".
 	"  -f  Force regeneration of the certificate even if it already exists\n".
 	"This addon requires the 'openvpn' feature to be enabled.\n";
@@ -41,7 +41,7 @@ sub perform {
 	# Parse arguments
 	my @args = @{$self->{args}};
 	if (scalar(@args) == 0 || (scalar(@args) == 1 && $args[0] eq '-f')) {
-		bail("USAGE: genesis do <env> generate-vpn-config [-f] user\@email.addr.ess");
+		bail("USAGE: genesis <env> do generate-vpn-config [-f] user\@email.addr.ess");
 	}
 
 	my $regen = '';

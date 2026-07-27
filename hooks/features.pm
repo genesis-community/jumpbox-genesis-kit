@@ -21,7 +21,7 @@ sub perform {
 
 	# Process requested features
 	foreach my $feature (@{$self->{features}}) {
-		if ($feature eq 'openvpn' || $feature eq 'bastion' || $feature eq 'dev-tools' || $feature eq 'ocfp') {
+		if ($feature eq 'openvpn' || $feature eq 'wireguard' || $feature eq 'bastion' || $feature eq 'dev-tools' || $feature eq 'ocfp') {
 			$self->add_feature($feature);
 		}
 		elsif ($feature eq 'shield') {
@@ -44,7 +44,7 @@ sub perform {
 		else {
 			bail(
 				"Feature [$feature] not supported in this context.\n".
-				"Supported features are: openvpn, bastion, dev-tools, and custom ops files."
+				"Supported features are: openvpn, wireguard, bastion, dev-tools, and custom ops files."
 			);
 		}
 	}

@@ -37,7 +37,7 @@ The kit now features robust user management capabilities:
 - Import SSH keys from local files or directories
 - Dynamically manage users without modifying deployment manifests
 
-Example: `genesis do my-env -- users add github/username`
+Example: `genesis my-env do users add github/username`
 
 See the [User Management documentation](docs/user-management.md) for details.
 

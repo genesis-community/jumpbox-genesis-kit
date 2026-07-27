@@ -1,0 +1,21 @@
+---
+# Merged iptables rules for openvpn + wireguard coexistence.
+#
+# Both VPN addons colocate the networking release's iptables job; spruce
+# merges jobs by name, so whichever addon file merges last would clobber
+# the other's FORWARD/POSTROUTING lists. This overlay is added by the
+# blueprint hook only when BOTH features are active, after both addon
+# files, and concatenates the two rule sets.
+instance_groups:
+- name: jumpbox
+  jobs:
+  - name: iptables
+    release: networking
+    properties:
+      iptables:
+        filter:
+          FORWARD: (( grab params.vpn_iptables_forward params.wireguard_iptables_forward ))
+        nat:
+          POSTROUTING:
+          - (( concat "-s " params.vpn_client_network "/" params.vpn_client_netmask " -d 0/0 -j MASQUERADE" ))
+          - (( concat "-s " params.wireguard_cidr " -d 0/0 -j MASQUERADE" ))

@@ -9,7 +9,7 @@ BEGIN {push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'/.genesis/
 use parent qw(Genesis::Hook);
 
 use Genesis qw/mkfile_or_fail bail/;
-use Genesis::UI qw/prompt_for_boolean prompt_for_line/;
+use Genesis::UI qw/prompt_for_boolean prompt_for_line prompt_for_list/;
 
 # init - Initialize the hook {{{
 sub init {
@@ -45,14 +45,52 @@ sub perform {
     );
   }
 
+  # WireGuard configuration
+  my $wireguard = prompt_for_boolean(
+    'Would you like to provide a WireGuard VPN on this jumpbox?'
+  );
+
+  my ($wg_cidr, $wg_server_address, $wg_port, $wg_endpoint);
+  my (@wg_routed_networks, @wg_dns);
+
+  if ($wireguard) {
+    $wg_cidr = prompt_for_line(
+      'What network should WireGuard clients use? (CIDR format)',
+      { default => '10.20.31.0/24', validation => qr{^\d+\.\d+\.\d+\.\d+/\d+$} }
+    );
+    my ($net_base) = $wg_cidr =~ m{^(\d+\.\d+\.\d+)\.};
+    $wg_server_address = "$net_base.1/" . ($wg_cidr =~ m{/(\d+)$})[0];
+
+    $wg_port = prompt_for_line(
+      'What UDP port should WireGuard listen on?',
+      { default => '51820', validation => qr/^\d+$/ }
+    );
+
+    @wg_routed_networks = @{prompt_for_list('line',
+      'What networks should be reachable through WireGuard? (CIDR format, e.g. 10.4.0.0/16)',
+      'network'
+    )};
+
+    @wg_dns = @{prompt_for_list('line',
+      'What DNS servers should clients use over WireGuard?',
+      'DNS server'
+    )};
+
+    $wg_endpoint = prompt_for_line(
+      'What public endpoint (host or host:port) will WireGuard clients dial? (leave empty to derive from BOSH)',
+      { default => '' }
+    );
+  }
+
   # Build environment file content
   my $file_content = "kit:\n";
   $file_content .= "  name:    $ENV{GENESIS_KIT_NAME}\n";
   $file_content .= "  version: $ENV{GENESIS_KIT_VERSION}\n";
 
-  if ($openvpn) {
+  if ($openvpn || $wireguard) {
     $file_content .= "  features:\n";
-    $file_content .= "    - openvpn\n";
+    $file_content .= "    - openvpn\n"   if $openvpn;
+    $file_content .= "    - wireguard\n" if $wireguard;
   }
 
   $file_content .= "\n";
@@ -84,6 +122,34 @@ sub perform {
     $params_content .= "  vpn_dns_search_domains:\n";
     for my $domain (@vpn_dns_search_domains) {
       $params_content .= "    - $domain\n";
+    }
+  }
+
+  if ($wireguard) {
+    $params_content .= "  wireguard_cidr: $wg_cidr\n";
+    $params_content .= "  wireguard_server_address: $wg_server_address\n";
+    $params_content .= "  wireguard_port: $wg_port\n" if $wg_port ne '51820';
+    $params_content .= "  wireguard_endpoint: $wg_endpoint\n" if $wg_endpoint;
+
+    if (@wg_routed_networks) {
+      $params_content .= "  wireguard_routed_networks:\n";
+      for my $net (@wg_routed_networks) {
+        $params_content .= "    - $net\n";
+      }
+    }
+
+    $params_content .= "  wireguard_iptables_forward:\n";
+    for my $net (@wg_routed_networks) {
+      $params_content .= "    - -s $wg_cidr -d $net -m conntrack --ctstate NEW -j ACCEPT -m comment --comment 'wg -> lan'\n";
+      $params_content .= "    - -s $net -d $wg_cidr -m conntrack --ctstate NEW -j ACCEPT -m comment --comment 'lan -> wg'\n";
+    }
+    $params_content .= "    - -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT\n";
+
+    if (@wg_dns) {
+      $params_content .= "  wireguard_dns:\n";
+      for my $dns (@wg_dns) {
+        $params_content .= "    - $dns\n";
+      }
     }
   }
 

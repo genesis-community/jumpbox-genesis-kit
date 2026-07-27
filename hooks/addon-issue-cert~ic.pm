@@ -19,7 +19,7 @@ sub init {
 sub cmd_details {
 	return
 	"Issue a new VPN certificate to a named user, so that they can access the VPN.\n".
-	"Usage: genesis do <env> -- issue-cert user\@email.addr.ess\n".
+	"Usage: genesis <env> do issue-cert user\@email.addr.ess\n".
 	"This addon requires the 'openvpn' feature to be enabled.\n";
 }
 
@@ -32,7 +32,7 @@ sub perform {
 	# Get email from arguments
 	my $email = $self->{args}[0];
 	if (!$email) {
-		bail("USAGE: genesis do <env> -- issue-cert user\@email.addr.ess");
+		bail("USAGE: genesis <env> do issue-cert user\@email.addr.ess");
 	}
 
 	my $secret = "$ENV{GENESIS_SECRETS_BASE}openvpn/certs/users/$email";

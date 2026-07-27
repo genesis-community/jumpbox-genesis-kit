@@ -28,6 +28,14 @@ meta:
       type:       github-release
       repository: cloudfoundry-community/openvpn-bosh-release
 
+    - name:       wireguard
+      type:       github-release
+      repository: cloudfoundry-community/wireguard-boshrelease
+
+    - name:       bpm
+      type:       bosh-io-release
+      repository: cloudfoundry/bpm-release
+
     - name:       toolbelt
       type:       github-release
       repository: cloudfoundry-community/toolbelt-boshrelease

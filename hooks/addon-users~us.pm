@@ -58,13 +58,13 @@ sub init {
 sub cmd_details {
   return
   "Manage users from GitHub/GitLab SSH keys in ./ops/users.yml\n".
-  "Usage: genesis do <env> -- users <init|add|a|remove|r> <[github|gitlab/]username_1> [username_2 ...]\n".
+  "Usage: genesis <env> do users <init|add|a|remove|r> <[github|gitlab/]username_1> [username_2 ...]\n".
   "Examples:\n".
-  "  genesis do <env> -- users init                        # Sync users from Vault config to environment\n".
-  "  genesis do <env> -- users add dennisjbell gitlab/wayneeseguin github/krutten\n".
-  "  genesis do <env> -- users remove jsmith\n".
-  "  genesis do <env> -- users add ./keys/jsmith.pub       # Local pubkey file\n".
-  "  genesis do <env> -- users add /path/to/pubkeys/       # Directory of pubkeys\n";
+  "  genesis <env> do users init                        # Sync users from Vault config to environment\n".
+  "  genesis <env> do users add dennisjbell gitlab/wayneeseguin github/krutten\n".
+  "  genesis <env> do users remove jsmith\n".
+  "  genesis <env> do users add ./keys/jsmith.pub       # Local pubkey file\n".
+  "  genesis <env> do users add /path/to/pubkeys/       # Directory of pubkeys\n";
 }
 
 sub perform {
@@ -72,8 +72,8 @@ sub perform {
 
   # Check if we have enough arguments
   unless (scalar(@{$self->{args}}) >= 1) {
-    error("Usage: genesis do <env> -- users <init|add|a|remove|r> <[github|gitlab/]username_1> [username_2 ...]");
-    info("Examples:\n  genesis do <env> -- users init\n  genesis do <env> -- users add dennisjbell gitlab/wayneeseguin github/krutten");
+    error("Usage: genesis <env> do users <init|add|a|remove|r> <[github|gitlab/]username_1> [username_2 ...]");
+    info("Examples:\n  genesis <env> do users init\n  genesis <env> do users add dennisjbell gitlab/wayneeseguin github/krutten");
     return 0;
   }
 

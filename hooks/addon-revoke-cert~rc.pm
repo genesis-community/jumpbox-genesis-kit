@@ -19,7 +19,7 @@ sub init {
 sub cmd_details {
 	return
 	"Revokes an issued VPN user certificate, preventing them from accessing the VPN.\n".
-	"Usage: genesis do <env> -- revoke-cert user\@email.addr.ess\n".
+	"Usage: genesis <env> do revoke-cert user\@email.addr.ess\n".
 	"This addon requires the 'openvpn' feature to be enabled.\n";
 }
 
@@ -32,7 +32,7 @@ sub perform {
 	# Get email from arguments
 	my $email = $self->{args}[0];
 	if (!$email) {
-		bail("USAGE: genesis do <env> -- revoke-cert user\@email.addr.ess");
+		bail("USAGE: genesis <env> do revoke-cert user\@email.addr.ess");
 	}
 
 	my $secret = "$ENV{GENESIS_SECRETS_BASE}openvpn/certs/users/$email";

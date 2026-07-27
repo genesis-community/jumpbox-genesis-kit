@@ -1,0 +1,16 @@
+---
+kit:
+  name:    dev
+  version: latest
+  features:
+    - wireguard
+
+genesis:
+  env:      wireguard
+
+params:
+  users:
+    - name: test-user
+      shell: /bin/bash
+      ssh_keys:
+        - ssh-rsa 1234567890qwertyuiopasdfghjklzxcvbnm

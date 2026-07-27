@@ -32,6 +32,21 @@ var _ = Describe("Jumpbox Kit", func() {
 			CPI:         "aws",
 		})
 		Test(Environment{
+			Name:        "wireguard",
+			CloudConfig: "aws",
+			CPI:         "aws",
+		})
+		Test(Environment{
+			Name:        "wireguard-all-params",
+			CloudConfig: "aws",
+			CPI:         "aws",
+		})
+		Test(Environment{
+			Name:        "openvpn-wireguard",
+			CloudConfig: "aws",
+			CPI:         "aws",
+		})
+		Test(Environment{
 			Name:        "all-features-all-params",
 			CloudConfig: "aws",
 			CPI:         "aws",
