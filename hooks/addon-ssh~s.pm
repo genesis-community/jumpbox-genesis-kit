@@ -25,13 +25,14 @@ sub init {
 sub cmd_details {
 	return
 	"SSH (interactively) into the jumpbox.\n".
+	"Logs in as the first account in params.users unless GENESIS_JUMPBOX_USER is set.\n".
 	"Any additional arguments will be passed to the ssh command.\n";
 }
 
 sub perform {
 	my ($self) = @_;
-	my $ip = $self->_get_jumpbox_ip();
-	exec('ssh', $ip, @{$self->{args}}) or bail("Failed to execute SSH command: $!");
+	my $target = $self->_get_jumpbox_login();
+	exec('ssh', $target, @{$self->{args}}) or bail("Failed to execute SSH command: $!");
 }
 
 1;
