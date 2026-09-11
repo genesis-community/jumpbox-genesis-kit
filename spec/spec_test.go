@@ -22,6 +22,11 @@ var _ = Describe("Jumpbox Kit", func() {
 			CPI:         "aws",
 		})
 		Test(Environment{
+			Name:        "null-params",
+			CloudConfig: "aws",
+			CPI:         "aws",
+		})
+		Test(Environment{
 			Name:        "bastion",
 			CloudConfig: "aws",
 			CPI:         "aws",

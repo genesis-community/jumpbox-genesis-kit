@@ -41,9 +41,17 @@ instance_groups:
           jumpbox:
             hostname: (( grab params.hostname ))
             users: (( grab params.users ))
-            banner: (( grab params.banner ))
+            # The jumpbox release renders the banner and the system-wide
+            # bashrc straight into the login profile, and BOSH swaps in the
+            # job spec default whenever a property arrives as null. The
+            # release spells the banner default as `nil`, and YAML reads that
+            # as a plain string rather than as a null, so an unset banner used
+            # to print a bare `nil` to everyone who logged in. `join ""` turns
+            # an unset or null parameter into an empty string, and it passes
+            # any value the operator did set straight through.
+            banner: (( join "" params.banner ))
             hosts: (( grab params.hosts ))
-            bashrc: (( grab params.bashrc ))
+            bashrc: (( join "" params.bashrc ))
             distinct_bosh_user: (( grab params.distinct_bosh_user || false ))
             env:
               TMPDIR: /var/vcap/data/root_tmp

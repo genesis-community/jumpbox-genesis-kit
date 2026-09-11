@@ -1,0 +1,21 @@
+---
+kit:
+  name:    dev
+  version: latest
+  features: []
+
+genesis:
+  env:      null-params
+
+# The jumpbox release falls back to its job spec default whenever a property
+# comes through as null, and its default for the banner is the literal string
+# "nil". This environment sets the banner and the bashrc to null on purpose, so
+# the rendered manifest has to show empty strings rather than nulls.
+params:
+  banner: ~
+  bashrc: ~
+  users:
+    - name: test-user
+      shell: /bin/bash
+      ssh_keys:
+        - ssh-rsa 1234567890qwertyuiopasdfghjklzxcvbnm

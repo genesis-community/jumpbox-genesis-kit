@@ -17,8 +17,8 @@ instance_groups:
   - name: jumpbox
     properties:
       jumpbox:
-        banner: null
-        bashrc: null
+        banner: ""
+        bashrc: ""
         distinct_bosh_user: false
         env:
           TMPDIR: /var/vcap/data/root_tmp

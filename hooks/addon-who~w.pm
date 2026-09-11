@@ -9,11 +9,14 @@ BEGIN {push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'./.genesis
 use parent qw(Genesis::Hook::Addon);
 use Genesis qw/run/;
 
-# Include _get_jumpbox_ip method from mixin
+# Include the jumpbox login and ssh command helpers from the mixins
 BEGIN {
 	require File::Basename;
-	my $mixin_file = File::Basename::dirname(__FILE__) . '/lib/_get_jumpbox_ip.pm';
-	do $mixin_file or die "Failed to include addon mixin $mixin_file: $!";
+	my $lib = File::Basename::dirname(__FILE__) . '/lib';
+	for my $mixin (qw(_get_jumpbox_ip.pm _ssh_command.pm)) {
+		my $mixin_file = "$lib/$mixin";
+		do $mixin_file or die "Failed to include addon mixin $mixin_file: $!";
+	}
 }
 sub init {
 	my $class = shift;
@@ -26,14 +29,16 @@ sub cmd_details {
 	return
 		"See who is logged into the jumpbox, via SSH.\n".
 		"Logs in as the first account in params.users unless GENESIS_JUMPBOX_USER is set.\n".
-	"Any additional arguments will be passed to the ssh command.\n".
+		"Arguments before a '--' are passed to the ssh command itself, and\n".
+		"arguments after a '--' are passed to the remote 'who' command.\n".
 		"This requires the ability to login via SSH.\n";
 }
 
 sub perform {
 	my ($self) = @_;
 	my $target = $self->_get_jumpbox_login();
-	exec('ssh', $target, @{$self->{args}}, '--', 'who') or bail("Failed to execute SSH command: $!");
+	my @cmd = $self->_ssh_command($target, $self->{args}, 'who');
+	exec(@cmd) or bail("Failed to execute SSH command: $!");
 }
 
 1;

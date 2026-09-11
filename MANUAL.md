@@ -33,7 +33,8 @@ related components.
   `-jumpbox` appended.
 
 - `banner` - A login / MOTD banner to display to all users logging
-  into the jumpbox over SSH.
+  into the jumpbox over SSH.  Leave it unset and the login profile
+  shows no banner of its own.
 
 - `hosts` - A list of IP address / FQDN lines that should be
   appended to `/etc/hosts`, to override DNS or provide missing
@@ -44,7 +45,8 @@ related components.
   be environment variable names.
 
 - `bashrc` - Contents of a Bash script that will be executed for
-  every user, on every SSH login.  Use with care.
+  every user, on every SSH login.  Use with care.  Leave it unset and
+  the login profile runs nothing extra.
 
 - `users` - A list of users to create accounts for on the jumpbox.
 
@@ -416,14 +418,17 @@ For detailed STACKIT configuration, see the [STACKIT Configuration Guide](docs/i
   genesis my-env do inventory
   ```
 
-- `ssh` - SSH into the jumpbox interactively.
+- `ssh` - Log into the jumpbox as the first account in `params.users`, or as `$GENESIS_JUMPBOX_USER` when that is set. Anything before a `--` goes to `ssh` itself. Anything after a `--` runs on the jumpbox as a command, and the addon quotes it so the remote shell sees each word whole. With no command you get an interactive shell.
   ```
   genesis my-env do ssh
+  genesis my-env do -- ssh -- hostname
+  genesis my-env do -- ssh -L 8080:localhost:80 -- uptime -p
   ```
 
-- `who` - SSH into the jumpbox and determine who is logged in.
+- `who` - Log into the jumpbox the same way and determine who is logged in. Anything after a `--` goes to the remote `who`.
   ```
   genesis my-env do who
+  genesis my-env do -- who -- -a
   ```
 
 - `users` - Manage user accounts and SSH keys from various sources.

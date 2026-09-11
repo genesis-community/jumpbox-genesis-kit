@@ -1,5 +1,5 @@
 exodus:
-  bosh: base
+  bosh: null-params
   features: ""
   iaas: null
   is_director: false
@@ -22,7 +22,7 @@ instance_groups:
         distinct_bosh_user: false
         env:
           TMPDIR: /var/vcap/data/root_tmp
-        hostname: base-jumpbox
+        hostname: null-params-jumpbox
         hosts: []
         users:
         - name: test-user
@@ -40,7 +40,7 @@ instance_groups:
   persistent_disk_type: jumpbox
   stemcell: default
   vm_type: jumpbox
-name: base-jumpbox
+name: null-params-jumpbox
 releases:
 - name: jumpbox
   sha1: 3257fd5b24c624889897f2104672e7cca49fc82e

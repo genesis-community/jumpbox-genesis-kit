@@ -55,25 +55,30 @@ Succeeded
 
 ### ssh
 
-The `ssh` addon lets you SSH into the jumpbox interactively.
+The `ssh` addon logs you into the jumpbox. It connects as the first account in `params.users`, and you can name a different account by setting `GENESIS_JUMPBOX_USER`.
 
 **Usage:**
 
 ```bash
-genesis do <env> -- ssh
+genesis <env> do -- ssh
+genesis <env> do -- ssh -- hostname
+genesis <env> do -- ssh -L 8080:localhost:80 -- uptime -p
 ```
 
-This will establish an SSH connection to the jumpbox VM as the BOSH user.
+With no arguments you get an interactive shell. Anything before a `--` goes to the `ssh` command itself, so that is where options such as `-L` belong. Anything after a `--` is the command to run on the jumpbox. The addon quotes each word of it, so a word that holds spaces or quotes reaches the remote shell exactly as you typed it.
 
 ### who
 
-The `who` addon shows the users currently logged into the jumpbox.
+The `who` addon shows the users currently logged into the jumpbox. It logs in the same way the `ssh` addon does.
 
 **Usage:**
 
 ```bash
-genesis do <env> -- who
+genesis <env> do -- who
+genesis <env> do -- who -- -a
 ```
+
+Anything before a `--` goes to the `ssh` command, and anything after a `--` goes to the remote `who`.
 
 **Example Output:**
 
