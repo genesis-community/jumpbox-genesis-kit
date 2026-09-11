@@ -5,7 +5,7 @@ use v5.20;
 use warnings; # Genesis min perl version is 5.20
 
 BEGIN {
-	push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'./.genesis/lib';
+	push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'/.genesis/lib';
 	require File::Basename;
 	push @INC, File::Basename::dirname(__FILE__).'/lib';
 }
