@@ -9,6 +9,7 @@ params:
   hosts: []
   env_vars: {}
   bashrc: ~
+  one_time_setup: true
   users: (( param "Set up some users to log into this jumpbox" ))
   distinct_bosh_user: false
   ca_validity_period: 1y
@@ -52,6 +53,12 @@ instance_groups:
             banner: (( join "" params.banner ))
             hosts: (( grab params.hosts ))
             bashrc: (( join "" params.bashrc ))
+            # The release prompts a new account through a one-time setup on its
+            # first login, and it reads the answer from standard input without
+            # checking that the shell is interactive. Set this to false when
+            # accounts on this jumpbox need to run commands over ssh before
+            # anyone has logged into them interactively.
+            one_time_setup: (( grab params.one_time_setup ))
             distinct_bosh_user: (( grab params.distinct_bosh_user || false ))
             env:
               TMPDIR: /var/vcap/data/root_tmp

@@ -48,6 +48,8 @@ related components.
   every user, on every SSH login.  Use with care.  Leave it unset and
   the login profile runs nothing extra.
 
+- `one_time_setup` - Whether a new account is walked through the release's one-time setup the first time it logs in. Defaults to `true`, which is what you want on a jumpbox people log into by hand. The release asks the question on standard input without checking that the shell is interactive, so an account that has never had an interactive login will hang or misread a command sent over ssh. Set this to `false` when accounts on this jumpbox have to run commands over ssh before anyone signs into them.
+
 - `users` - A list of users to create accounts for on the jumpbox.
 
   This is a list of maps.

@@ -24,6 +24,7 @@ instance_groups:
           TMPDIR: /var/vcap/data/root_tmp
         hostname: openvpn-wireguard-jumpbox
         hosts: []
+        one_time_setup: true
         users:
         - name: test-user
           shell: /bin/bash
@@ -93,9 +94,9 @@ instance_groups:
 name: openvpn-wireguard-jumpbox
 releases:
 - name: jumpbox
-  sha1: 3257fd5b24c624889897f2104672e7cca49fc82e
-  url: https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/download/v5.1.3/jumpbox-5.1.3.tgz
-  version: 5.1.3
+  sha1: 14e192b7355b3d1348c61850b6396c3f3e602556
+  url: https://github.com/cloudfoundry-community/jumpbox-boshrelease/releases/download/v5.1.4/jumpbox-5.1.4.tgz
+  version: 5.1.4
 - name: toolbelt
   sha1: 9ef47e3aa0f9b22a4186df675f3c223fe3a6d847
   url: https://github.com/cloudfoundry-community/toolbelt-boshrelease/releases/download/v4.0.0/toolbelt-4.0.0.tgz

@@ -41,6 +41,7 @@ params:
       ssh_keys:
         - ssh-rsa 1234567890qwertyuiopasdfghjklzxcvbnm
   banner: test-banner
+  one_time_setup: false
   hosts:
   - 1.2.3.4
   bashrc: |
