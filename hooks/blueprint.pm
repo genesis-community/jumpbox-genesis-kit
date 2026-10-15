@@ -83,6 +83,8 @@ sub perform {
         mkfile_or_fail($self->env->kit->path($peers_file), 0644, $peers_fragment);
         $self->add_files($peers_file);
       }
+    } elsif ($feature eq 'resolute') {
+      # Handled after the loop so that it overrides every other fragment.
     } elsif ($feature =~ /^(bastion|dev-tools)$/) {
       $self->add_files("manifests/${feature}.yml");
     } elsif ($feature eq 'ocfp') {
@@ -102,6 +104,8 @@ sub perform {
   # both rule sets; it must merge after both addon files.
   $self->add_files('manifests/addons/openvpn-wireguard.yml')
     if $self->want_feature('openvpn') && $self->want_feature('wireguard');
+
+  $self->_process_resolute;
 
   if (@invalid) {
     my $noun = @invalid == 1 ? 'feature' : 'features';
@@ -172,6 +176,33 @@ sub perform {
 	#$self->_dynamic_network_fragment if $self->want_feature('ocfp');
 
   return $self->done();
+}
+# }}}
+
+# _process_resolute - Opt-in ubuntu-resolute stemcell support {{{
+# Called after every other fragment is added so that it overrides the
+# stemcell os default (ubuntu-jammy) and the bpm release pin.
+sub _process_resolute {
+  my ($self) = @_;
+
+  if ($self->want_feature('resolute')) {
+    my $stemcell_os = $self->env->lookup('params.stemcell_os', 'ubuntu-resolute');
+    bail(
+      "The #c{resolute} feature sets the stemcell os to ubuntu-resolute, but " .
+      "the environment sets #c{params.stemcell_os} to #R{%s}.  " .
+      "Remove that parameter.", $stemcell_os
+    ) if $stemcell_os ne 'ubuntu-resolute';
+    $self->add_files('manifests/resolute.yml');
+    # bpm releases older than 1.4.41 do not compile on resolute.
+    $self->add_files('manifests/releases/bpm-resolute.yml')
+      if $self->want_feature('wireguard');
+  } elsif ($self->env->lookup('params.stemcell_os', 'ubuntu-jammy') eq 'ubuntu-resolute') {
+    bail(
+      "The environment sets #c{params.stemcell_os} to ubuntu-resolute " .
+      "without the #c{resolute} feature.  Enable the feature and remove " .
+      "that parameter."
+    );
+  }
 }
 # }}}
 

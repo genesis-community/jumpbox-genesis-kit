@@ -1,0 +1,17 @@
+---
+kit:
+  name:    dev
+  version: latest
+  features:
+    - resolute
+
+genesis:
+  env: resolute-wrong-stemcell-os
+
+params:
+  stemcell_os: ubuntu-noble
+  users:
+    - name: test-user
+      shell: /bin/bash
+      ssh_keys:
+        - ssh-rsa 1234567890qwertyuiopasdfghjklzxcvbnm

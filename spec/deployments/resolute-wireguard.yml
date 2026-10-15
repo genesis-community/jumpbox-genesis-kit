@@ -1,0 +1,18 @@
+---
+kit:
+  name:    dev
+  version: latest
+  features:
+    - resolute
+    - wireguard
+
+genesis:
+  env: resolute-wireguard
+
+params:
+  stemcell_version: "0.184"
+  users:
+    - name: test-user
+      shell: /bin/bash
+      ssh_keys:
+        - ssh-rsa 1234567890qwertyuiopasdfghjklzxcvbnm
