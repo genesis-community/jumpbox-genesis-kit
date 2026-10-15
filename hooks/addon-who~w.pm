@@ -31,13 +31,29 @@ sub cmd_details {
 		"Logs in as the first account in params.users unless GENESIS_JUMPBOX_USER is set.\n".
 		"Arguments before a '--' are passed to the ssh command itself, and\n".
 		"arguments after a '--' are passed to the remote 'who' command.\n".
+		"Where the jumpbox has no /run/utmp, as on ubuntu-resolute, it lists the\n".
+		"sessions from 'w' or logind instead, and the arguments are not used.\n".
 		"This requires the ability to login via SSH.\n";
+}
+
+# Resolute stemcells have no /run/utmp, so who exits cleanly and prints nothing
+# even while people are logged in. When the file is missing we ask w, and when
+# w shows nothing either, we ask logind. Where utmp exists, who runs as before.
+sub _who_with_fallback {
+	my ($self, $who) = @_;
+	my $script =
+		"if [ -e /run/utmp ]; then $who; ".
+		'else out=$(w -h 2>/dev/null); '.
+		'if [ -n "$out" ]; then printf \'%s\\n\' "$out"; '.
+		'else loginctl list-sessions --no-legend 2>/dev/null; fi; fi';
+	return $self->_remote_command('sh', '-c', $script);
 }
 
 sub perform {
 	my ($self) = @_;
 	my $target = $self->_get_jumpbox_login();
 	my @cmd = $self->_ssh_command($target, $self->{args}, 'who');
+	$cmd[-1] = $self->_who_with_fallback($cmd[-1]);
 	exec(@cmd) or bail("Failed to execute SSH command: $!");
 }
 

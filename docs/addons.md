@@ -80,6 +80,8 @@ genesis <env> do -- who -- -a
 
 Anything before a `--` goes to the `ssh` command, and anything after a `--` goes to the remote `who`.
 
+A jumpbox on ubuntu-resolute has no `/run/utmp`, so the remote `who` would print nothing. When that file is missing, the addon lists the sessions from `w -h` instead, and if that shows nothing, from `loginctl list-sessions`. In that case the arguments after the `--` are not used.
+
 **Example Output:**
 
 ```
