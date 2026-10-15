@@ -36,17 +36,33 @@ func registry(listed, live []string) string {
 	return dir
 }
 
-// peers runs the registry helper against the fake vault and returns its output.
-func peers(dir, mode string) string {
+// runHelper runs a Perl helper from spec/support against the fake vault and
+// returns its combined output with the error from the process, if any.
+func runHelper(dir, script string, args ...string) (string, error) {
 	support := filepath.Join(KitDir, "spec", "support")
-	cmd := exec.Command("perl", filepath.Join(support, "wireguard-peers.pl"), mode)
+	cmd := exec.Command("perl", append([]string{filepath.Join(support, script)}, args...)...)
 	cmd.Env = append(os.Environ(),
 		"PATH="+support+string(os.PathListSeparator)+os.Getenv("PATH"),
 		"FAKE_SAFE_DIR="+dir,
 	)
 	out, err := cmd.CombinedOutput()
-	Expect(err).ToNot(HaveOccurred(), string(out))
-	return string(out)
+	return string(out), err
+}
+
+// peers runs the registry helper against the fake vault and returns its output.
+func peers(dir string, args ...string) string {
+	out, err := runHelper(dir, "wireguard-peers.pl", args...)
+	Expect(err).ToNot(HaveOccurred(), out)
+	return out
+}
+
+// sealVault makes `safe exists` fail for the named peers, as a sealed vault does.
+func sealVault(dir string, names ...string) {
+	var secrets []string
+	for _, name := range names {
+		secrets = append(secrets, peersBase+name)
+	}
+	Expect(os.WriteFile(filepath.Join(dir, "errors"), []byte(strings.Join(secrets, "\n")+"\n"), 0o644)).To(Succeed())
 }
 
 var _ = Describe("the wireguard peer registry", func() {
@@ -70,5 +86,48 @@ var _ = Describe("the wireguard peer registry", func() {
 	It("renders nothing when every listed peer was moved away", func() {
 		dir := registry([]string{"gone"}, nil)
 		Expect(peers(dir, "fragment")).To(Equal("(none)\n"))
+	})
+
+	Context("when the vault returns an error instead of an answer", func() {
+		It("reports a secret that is missing as missing", func() {
+			dir := registry([]string{"gone"}, nil)
+			Expect(peers(dir, "has", peersBase+"gone:public")).To(Equal("no\n"))
+		})
+
+		It("reports a secret that is present as present", func() {
+			dir := registry([]string{"laptop"}, []string{"laptop"})
+			Expect(peers(dir, "has", peersBase+"laptop:public")).To(Equal("yes\n"))
+		})
+
+		It("fails and names the path instead of reporting the secret as missing", func() {
+			dir := registry([]string{"laptop"}, []string{"laptop"})
+			sealVault(dir, "laptop")
+			out, err := runHelper(dir, "wireguard-peers.pl", "has", peersBase+"laptop:public")
+			Expect(err).To(HaveOccurred())
+			Expect(out).To(ContainSubstring(peersBase + "laptop:public"))
+			Expect(out).To(ContainSubstring("Sealed"))
+		})
+
+		It("does not drop a peer from the list", func() {
+			dir := registry([]string{"laptop", "phone"}, []string{"laptop", "phone"})
+			sealVault(dir, "phone")
+			out, err := runHelper(dir, "wireguard-peers.pl", "list")
+			Expect(err).To(HaveOccurred())
+			Expect(out).To(ContainSubstring("phone"))
+		})
+
+		It("does not render a manifest without the peer", func() {
+			dir := registry([]string{"laptop", "phone"}, []string{"laptop", "phone"})
+			sealVault(dir, "phone")
+			_, err := runHelper(dir, "wireguard-peers.pl", "fragment")
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("does not hand out the address of a peer it could not read", func() {
+			dir := registry([]string{"laptop"}, []string{"laptop"})
+			sealVault(dir, "laptop")
+			_, err := runHelper(dir, "wireguard-peers.pl", "alloc", "10.20.31.0/24")
+			Expect(err).To(HaveOccurred())
+		})
 	})
 })

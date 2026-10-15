@@ -6,6 +6,9 @@
 #
 # FAKE_SAFE_DIR holds a file named "paths" with one listed path per line, and
 # a "live" directory with one directory per live secret and one file per key.
+# An optional "errors" file lists secrets (without a key) for which `exists`
+# fails the way a sealed vault does, with a message on stderr and exit code 1.
+# A missing secret is the quiet exit code 1, like the real command.
 
 set -u
 dir="${FAKE_SAFE_DIR:?FAKE_SAFE_DIR must be set}"
@@ -24,6 +27,10 @@ paths)
 	;;
 exists)
 	secret="${target%%:*}"
+	if [[ -f $dir/errors ]] && grep -F -x -q -e "$secret" "$dir/errors"; then
+		echo '!! 503 Sealed: Vault is sealed' >&2
+		exit 1
+	fi
 	key=""
 	[[ $target == *:* ]] && key="${target#*:}"
 	if [[ -n $key ]]; then
@@ -37,6 +44,9 @@ get)
 	key="${target#*:}"
 	[[ -f $dir/live/$secret/$key ]] || { echo "no secret exists at $target" >&2; exit 1; }
 	cat "$dir/live/$secret/$key"
+	;;
+x509)
+	echo "$*" >>"$dir/calls"
 	;;
 *)
 	echo "fake safe: unsupported command '$cmd'" >&2

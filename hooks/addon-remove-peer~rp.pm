@@ -43,9 +43,8 @@ sub perform {
 	my ($name) = @args;
 	my $peer_path = $self->_wg_peers_base . $name;
 
-	my (undef, $exists_rc) = run({stderr => 0},
-		'safe --quiet exists "$1:public"', $peer_path);
-	bail("Peer '%s' is not registered", $name) if $exists_rc != 0;
+	bail("Peer '%s' is not registered", $name)
+		unless $self->_vault_has($peer_path . ':public');
 
 	my $revoked_path = $self->_wg_revoked_base . $name . '-' . time();
 	my (undef, $rc) = run({stderr => 0},

@@ -51,13 +51,11 @@ sub perform {
 	}
 
 	my $peer_path = $self->_wg_peers_base . $name;
-	my (undef, $exists_rc) = run({stderr => 0},
-		'safe --quiet exists "$1:public"', $peer_path);
 	bail(
 		"Peer '%s' already exists. Remove it first with:\n".
 		"  genesis %s do remove-peer %s",
 		$name, $ENV{GENESIS_ENVIRONMENT}, $name
-	) if $exists_rc == 0;
+	) if $self->_vault_has($peer_path . ':public');
 
 	my $cidr = $self->env->lookup('params.wireguard_cidr', '10.20.31.0/24');
 	my $address = $self->_wg_alloc_address($cidr);

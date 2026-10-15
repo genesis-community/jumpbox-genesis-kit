@@ -48,13 +48,11 @@ sub perform {
 	my ($name) = @args;
 
 	my $peer_path = $self->_wg_peers_base . $name;
-	my (undef, $exists_rc) = run({stderr => 0},
-		'safe --quiet exists "$1:public"', $peer_path);
 	bail(
 		"Peer '%s' is not registered. Add it with:\n".
 		"  genesis %s do add-peer %s",
 		$name, $ENV{GENESIS_ENVIRONMENT}, $name
-	) if $exists_rc != 0;
+	) unless $self->_vault_has($peer_path . ':public');
 
 	my $priv    = $self->_wg_peer_get($name, 'private')
 		or bail("Peer '%s' has no private key in vault", $name);

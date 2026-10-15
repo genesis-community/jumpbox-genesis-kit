@@ -13,6 +13,12 @@
 
 use Genesis qw/bail run warning/;
 
+BEGIN {
+	require File::Basename;
+	my $mixin_file = File::Basename::dirname(__FILE__) . '/_vault_exists.pm';
+	do $mixin_file or die "Failed to include $mixin_file: " . ($@ || $! || 'unknown error');
+}
+
 # Relative prefix under GENESIS_SECRETS_BASE for wireguard secrets.
 # 'wireguard/' here: the jumpbox kit namespaces its wireguard secrets
 # alongside openvpn/ (the standalone wireguard kit uses '').
@@ -79,9 +85,7 @@ sub _ensure_server_keys {
 	my ($self) = @_;
 	my $path = $self->_wg_server_path;
 
-	my (undef, $rc) = run({stderr => 0},
-		'safe --quiet exists "$1:private" && safe --quiet exists "$1:public"', $path);
-	return 1 if $rc == 0;
+	return 1 if $self->_vault_has("$path:private") && $self->_vault_has("$path:public");
 
 	my ($priv, $pub) = $self->_wg_keypair;
 	my (undef, $set_rc) = run({stderr => 0},
@@ -116,12 +120,11 @@ sub _wg_list_peers {
 
 	# On a KV v2 mount, `safe paths` still lists a secret after it has been
 	# moved or deleted, because the soft-deleted versions remain. Only a peer
-	# whose public key can still be read is registered.
+	# whose public key can still be read is registered. A vault error stops the
+	# run, so a peer is never dropped because the vault could not answer.
 	my @live;
 	for my $name (sort keys %seen) {
-		my (undef, $erc) = run({stderr => 0},
-			'safe --quiet exists "$1:public"', $base . $name);
-		push @live, $name if $erc == 0;
+		push @live, $name if $self->_vault_has($base . $name . ':public');
 	}
 	return @live;
 }
