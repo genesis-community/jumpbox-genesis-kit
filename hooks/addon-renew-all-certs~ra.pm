@@ -35,6 +35,9 @@ sub perform {
 
 	for my $secret (split(/\n/, $paths)) {
 		next unless $secret;
+		# A revoked certificate is soft deleted on KV v2 but still listed.
+		my (undef, $erc) = run({stderr => 0}, 'safe --quiet exists "$1:certificate"', $secret);
+		next if $erc;
 		run('safe x509 renew --signed-by "$1" "$2"', $ca, $secret);
 		run('safe x509 show "$1"', $secret);
 	}
