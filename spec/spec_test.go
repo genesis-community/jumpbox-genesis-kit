@@ -6,6 +6,7 @@ import (
 
 	. "github.com/genesis-community/testkit/v2/testing"
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 var _ = BeforeSuite(func() {
@@ -33,6 +34,11 @@ var _ = Describe("Jumpbox Kit", func() {
 		})
 		Test(Environment{
 			Name:        "openvpn",
+			CloudConfig: "aws",
+			CPI:         "aws",
+		})
+		Test(Environment{
+			Name:        "openvpn-no-search-domains",
 			CloudConfig: "aws",
 			CPI:         "aws",
 		})

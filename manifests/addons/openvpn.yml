@@ -11,6 +11,7 @@ params:
   vpn_compress: auto
   vpn_extra_configs: []
   vpn_extra_client_configs: []
+  vpn_dns_search_domains: []
 
 instance_groups:
 - name: jumpbox
