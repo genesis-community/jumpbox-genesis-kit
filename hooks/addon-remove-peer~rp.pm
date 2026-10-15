@@ -44,7 +44,7 @@ sub perform {
 	my $peer_path = $self->_wg_peers_base . $name;
 
 	my (undef, $exists_rc) = run({stderr => 0},
-		'safe --quiet exists "$1"', $peer_path);
+		'safe --quiet exists "$1:public"', $peer_path);
 	bail("Peer '%s' is not registered", $name) if $exists_rc != 0;
 
 	my $revoked_path = $self->_wg_revoked_base . $name . '-' . time();

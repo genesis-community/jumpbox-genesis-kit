@@ -93,6 +93,7 @@ sub _ensure_server_keys {
 # }}}
 
 # _wg_list_peers - names registered under the peer registry {{{
+# A name counts only while its public key can be read.
 sub _wg_list_peers {
 	my ($self) = @_;
 	my $base = $self->_wg_peers_base;
@@ -112,7 +113,17 @@ sub _wg_list_peers {
 		next unless $line =~ /^\Q$base\E(.+)$/;
 		$seen{$1} = 1;
 	}
-	return sort keys %seen;
+
+	# On a KV v2 mount, `safe paths` still lists a secret after it has been
+	# moved or deleted, because the soft-deleted versions remain. Only a peer
+	# whose public key can still be read is registered.
+	my @live;
+	for my $name (sort keys %seen) {
+		my (undef, $erc) = run({stderr => 0},
+			'safe --quiet exists "$1:public"', $base . $name);
+		push @live, $name if $erc == 0;
+	}
+	return @live;
 }
 # }}}
 

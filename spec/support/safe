@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+#
+# A stand-in for the safe CLI that the peer registry spec puts on PATH. It
+# models a KV v2 mount after a move, where `paths` still lists a secret that
+# has been soft deleted but `exists` and `get` no longer find it.
+#
+# FAKE_SAFE_DIR holds a file named "paths" with one listed path per line, and
+# a "live" directory with one directory per live secret and one file per key.
+
+set -u
+dir="${FAKE_SAFE_DIR:?FAKE_SAFE_DIR must be set}"
+
+args=()
+for a in "$@"; do
+	[[ $a == --quiet ]] || args+=("$a")
+done
+cmd="${args[0]:-}"
+target="${args[1]:-}"
+
+case "$cmd" in
+paths)
+	prefix="${target%/}/"
+	grep -F -x -e "" -v "$dir/paths" 2>/dev/null | grep -F "$prefix" || true
+	;;
+exists)
+	secret="${target%%:*}"
+	key=""
+	[[ $target == *:* ]] && key="${target#*:}"
+	if [[ -n $key ]]; then
+		[[ -f $dir/live/$secret/$key ]]
+	else
+		[[ -d $dir/live/$secret ]]
+	fi
+	;;
+get)
+	secret="${target%%:*}"
+	key="${target#*:}"
+	[[ -f $dir/live/$secret/$key ]] || { echo "no secret exists at $target" >&2; exit 1; }
+	cat "$dir/live/$secret/$key"
+	;;
+*)
+	echo "fake safe: unsupported command '$cmd'" >&2
+	exit 2
+	;;
+esac
