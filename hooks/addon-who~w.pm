@@ -45,7 +45,10 @@ sub _who_with_fallback {
 		"if [ -e /run/utmp ]; then $who; ".
 		'else out=$(w -h 2>/dev/null); '.
 		'if [ -n "$out" ]; then printf \'%s\\n\' "$out"; '.
-		'else loginctl list-sessions --no-legend 2>/dev/null; fi; fi';
+		'elif command -v loginctl >/dev/null 2>&1; then loginctl list-sessions --no-legend; '.
+		'elif ! command -v w >/dev/null 2>&1; then '.
+		'echo "who: this jumpbox has no utmp, and neither w nor loginctl is installed" >&2; exit 1; '.
+		'fi; fi';
 	return $self->_remote_command('sh', '-c', $script);
 }
 
