@@ -9,6 +9,13 @@ BEGIN {push @INC, $ENV{GENESIS_LIB} ? $ENV{GENESIS_LIB} : $ENV{HOME}.'/.genesis/
 use parent qw(Genesis::Hook::Addon);
 use Genesis qw/run info bail/;
 
+# Include the vault existence check from mixin
+BEGIN {
+	require File::Basename;
+	my $mixin_file = File::Basename::dirname(__FILE__) . '/lib/_vault_exists.pm';
+	do $mixin_file or die "Failed to include addon mixin $mixin_file: " . ($@ || $! || 'unknown error');
+}
+
 sub init {
 	my $class = shift;
 	my $obj = $class->SUPER::init(@_);
@@ -36,8 +43,7 @@ sub perform {
 	for my $secret (split(/\n/, $paths)) {
 		next unless $secret;
 		# A revoked certificate is soft deleted on KV v2 but still listed.
-		my (undef, $erc) = run({stderr => 0}, 'safe --quiet exists "$1:certificate"', $secret);
-		next if $erc;
+		next unless $self->_vault_has($secret . ':certificate');
 		run('safe x509 show "$1"', $secret);
 		print "\n\n";
 		$n++;
