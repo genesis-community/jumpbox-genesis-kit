@@ -119,7 +119,9 @@ sub perform {
       $params_content .= "    - $dns\n";
     }
 
-    $params_content .= "  vpn_dns_search_domains:\n";
+    $params_content .= @vpn_dns_search_domains
+      ? "  vpn_dns_search_domains:\n"
+      : "  vpn_dns_search_domains: []\n";
     for my $domain (@vpn_dns_search_domains) {
       $params_content .= "    - $domain\n";
     }
