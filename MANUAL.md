@@ -191,8 +191,10 @@ params:
   vault-backed addons and take effect on redeploy via `wg syncconf`,
   which never interrupts established sessions.
 
-  Requires an `ubuntu-noble` stemcell (the wireguard BOSH release
-  depends on the in-kernel WireGuard module).
+  The wireguard BOSH release depends on the in-kernel WireGuard
+  module, so the stemcell has to ship it.  The module is present on
+  `ubuntu-resolute` 0.184, where we ran this feature, and the
+  `resolute` feature below covers that stemcell.
 
   The `openvpn` and `wireguard` features may be enabled together;
   the kit merges their iptables FORWARD/POSTROUTING rules when both
@@ -225,6 +227,35 @@ params:
   - `wireguard_iptables_forward` - iptables FORWARD rules required
     for WireGuard traffic to flow.  Automatically generated via
     `genesis new`, but can be modified or added to.
+
+- `resolute` - Deploys the jumpbox on the `ubuntu-resolute` stemcell
+  instead of the default `ubuntu-jammy`, and is still experimental.
+  See [Ubuntu Resolute Stemcells](#ubuntu-resolute-stemcells).
+
+## Ubuntu Resolute Stemcells
+
+The kit deploys the jumpbox on an ubuntu-jammy stemcell unless we ask for something else. Adding the `resolute` feature moves the jumpbox onto ubuntu-resolute.
+
+```yaml
+kit:
+  features:
+  - resolute
+
+params:
+  stemcell_version: "0.184"
+```
+
+The feature is experimental, so we recommend trying it on a canary deployment before we point anything real at it. We deployed ubuntu-resolute 0.184 live with the base jumpbox, with the `wireguard` feature, and with the `openvpn` feature, and each of them worked. Every combination of the kit's features renders the right stemcell and the right releases, although we have not deployed all of those combinations.
+
+The feature sets the stemcell `os` to `ubuntu-resolute`, and `stemcell_version` still selects the version, which defaults to `latest`. We recommend pinning it to a resolute version such as `"0.184"`. A `latest` version resolves among the stemcells of that one operating system, so when someone uploads a newer resolute stemcell, the next deploy moves the jumpbox onto it. A pinned `stemcell_version` has to be a resolute version, because the kit does not check that the number belongs to resolute, and the director will only complain at deploy time if it has no such stemcell.
+
+Because the feature owns the stemcell os, the kit refuses an environment that sets `params.stemcell_os` to anything else. It also refuses an environment that sets `params.stemcell_os` to `ubuntu-resolute` without turning the feature on, so an environment that used to rely on that parameter alone needs to add the feature and drop the parameter.
+
+Before the first deploy, we upload the resolute stemcell to the director that deploys the jumpbox. The director's runtime config must also carry bosh-dns 1.39.31 or later, because earlier bosh-dns releases do not run on resolute.
+
+The `wireguard` feature deploys the bpm release, and bpm releases older than 1.4.41 do not compile on resolute. When `resolute` and `wireguard` are both enabled, the kit pins bpm to 1.4.41, and otherwise it leaves the bpm version alone. Resolute also ships without runit, so the `chpst` command is missing, and a job whose start script drops privileges with `chpst` hangs there. We checked the releases the jumpbox kit uses and found none that depend on `chpst`, but we should check any other release we add to the deployment before we move it to resolute.
+
+Resolute also has no `/run/utmp`, so the `who` command prints nothing even while people are logged in. The `who` addon allows for this, as described under the addons below.
 
 # User Management
 
@@ -427,7 +458,7 @@ For detailed STACKIT configuration, see the [STACKIT Configuration Guide](docs/i
   genesis my-env do -- ssh -L 8080:localhost:80 -- uptime -p
   ```
 
-- `who` - Log into the jumpbox the same way and determine who is logged in. Anything after a `--` goes to the remote `who`.
+- `who` - Log into the jumpbox the same way and determine who is logged in. Anything after a `--` goes to the remote `who`. A jumpbox on ubuntu-resolute has no `/run/utmp`, so `who` would print nothing there. When that file is missing, the addon lists the sessions from `w -h` instead, and if that shows nothing, from `loginctl list-sessions`. In that case the arguments after the `--` are not used.
   ```
   genesis my-env do who
   genesis my-env do -- who -- -a
@@ -506,8 +537,9 @@ If the `wireguard` feature is enabled, the following addons are also available:
   ```
 
 - `remove-peer <name>` (alias `rp`) - Revoke a peer.  Its registry
-  entry moves to the `revoked/` archive and the next deploy drops it
-  from the interface.
+  entry moves to the `revoked/` archive, and the kit ignores the old
+  entry from then on, even on a vault that keeps the deleted version
+  of the secret.  The next deploy drops the peer from the interface.
   ```
   genesis my-env do remove-peer laptop
   ```

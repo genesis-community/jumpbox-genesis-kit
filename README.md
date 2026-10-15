@@ -78,6 +78,7 @@ Available Features
 - `dev-tools` - Include development build tools (compilers, etc.)
 - `bastion` - Dual-home a jumpbox as a bastion host
 - `openvpn` - Provide VPN access to internal infrastructure
+- `resolute` - Deploy the jumpbox on the `ubuntu-resolute` stemcell instead of `ubuntu-jammy`
 
 Available Addons
 -----------
