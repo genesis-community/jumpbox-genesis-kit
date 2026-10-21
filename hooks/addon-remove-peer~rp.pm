@@ -41,6 +41,10 @@ sub perform {
 		unless @args == 1;
 
 	my ($name) = @args;
+	# The entry is destroyed after the move, so a name must not reach outside
+	# the registry through an empty, '.', or '..' path segment.
+	bail("Peer name '%s' is not a registry entry name", $name)
+		if $name !~ m{^[^/]+(?:/[^/]+)*$} || $name =~ m{(?:^|/)\.\.?(?:/|$)};
 	my $peer_path = $self->_wg_peers_base . $name;
 
 	# Any entry with data moves to the archive, even one that has lost its

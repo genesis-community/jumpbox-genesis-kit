@@ -268,6 +268,17 @@ var _ = Describe("the remove-peer addon", func() {
 		Expect(revoked).To(HaveLen(1))
 	})
 
+	for _, name := range []string{"..", "../server", "a/../../server", "/laptop", "laptop/", "a//b", "."} {
+		name := name
+		It("refuses the name "+name+" before touching the vault", func() {
+			dir := registry([]string{"laptop"}, []string{"laptop"})
+			out, err := removePeer(dir, name)
+			Expect(err).To(HaveOccurred())
+			Expect(out).To(ContainSubstring("is not a registry entry name"))
+			Expect(calls(dir)).To(Equal(""))
+		})
+	}
+
 	It("refuses a name that is not in the registry", func() {
 		dir := registry([]string{"laptop"}, []string{"laptop"})
 		out, err := removePeer(dir, "phone")
