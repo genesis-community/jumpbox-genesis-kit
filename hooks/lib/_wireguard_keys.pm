@@ -96,20 +96,23 @@ sub _ensure_server_keys {
 }
 # }}}
 
-# _wg_list_peers - names registered under the peer registry {{{
-# A name counts only while its public key can be read.
-sub _wg_list_peers {
+# _wg_registry_names - every name listed under the peer registry {{{
+# Includes entries with no data, which a KV v2 mount keeps listing after
+# their latest version is deleted.  Use _wg_list_peers for live peers.
+sub _wg_registry_names {
 	my ($self) = @_;
 	my $base = $self->_wg_peers_base;
 	my ($out, $rc, $err) = run({stderr => 0}, 'safe paths "$1"', $base);
 	if ($rc) {
-		# An empty registry reads as "no secret exists" — only complain
-		# about other failures (unreachable vault, auth, ...).
-		warning(
-			"wireguard peer registry lookup failed (safe paths %s): %s",
-			$base, $err || 'no output'
-		) unless ($err || '') =~ /no secret exists/;
-		return ();
+		# An empty registry reads as "no secret exists".  Any other failure
+		# (unreachable vault, auth, ...) must stop the caller, because an
+		# empty list would drop every peer from the next deploy.
+		my $msg = _wg_clean_err($err);
+		return () if $msg =~ /no secret exists/;
+		bail(
+			"The wireguard peer registry at #C{%s} could not be listed (safe paths exited %d): %s",
+			$base, $rc, $msg || 'no output'
+		);
 	}
 	return () if !$out;
 	my %seen;
@@ -117,16 +120,43 @@ sub _wg_list_peers {
 		next unless $line =~ /^\Q$base\E(.+)$/;
 		$seen{$1} = 1;
 	}
+	return sort keys %seen;
+}
+# }}}
 
-	# On a KV v2 mount, `safe paths` still lists a secret after it has been
-	# moved or deleted, because the soft-deleted versions remain. Only a peer
-	# whose public key can still be read is registered. A vault error stops the
-	# run, so a peer is never dropped because the vault could not answer.
-	my @live;
-	for my $name (sort keys %seen) {
-		push @live, $name if $self->_vault_has($base . $name . ':public');
-	}
-	return @live;
+# _wg_list_peers - names of registered peers whose public key can be read {{{
+# On a KV v2 mount, `safe paths` still lists a secret after it has been
+# moved or deleted, because the soft-deleted versions remain. Only a peer
+# whose public key can still be read is registered. A vault error stops the
+# run, so a peer is never dropped because the vault could not answer.
+sub _wg_list_peers {
+	my ($self) = @_;
+	my $base = $self->_wg_peers_base;
+	return grep {
+		$self->_vault_has($base . $_ . ':public');
+	} $self->_wg_registry_names;
+}
+# }}}
+
+# _wg_clean_err - safe's error output without colour codes or edge whitespace {{{
+# Returns '' for undef, so callers can test for "no error output" directly.
+sub _wg_clean_err {
+	my ($err) = @_;
+	$err = defined($err) ? $err : '';
+	$err =~ s/\e\[[0-9;]*m//g;
+	$err =~ s/^\s+|\s+$//g;
+	return $err;
+}
+# }}}
+
+# _wg_destroy_entry - destroy every version of a vault path {{{
+# Returns safe's exit code and its cleaned error output.  With --force, safe
+# treats an absent path as success, so a KV v1 entry that a move already
+# removed reports 0.
+sub _wg_destroy_entry {
+	my ($self, $path) = @_;
+	my (undef, $rc, $err) = run({stderr => 0}, 'safe delete --force --destroy --all "$1"', $path);
+	return ($rc, _wg_clean_err($err));
 }
 # }}}
 

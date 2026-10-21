@@ -9,19 +9,30 @@
 # An optional "errors" file lists secrets (without a key) for which `exists`
 # fails the way a sealed vault does, with a message on stderr and exit code 1.
 # A missing secret is the quiet exit code 1, like the real command.
+#
+# `mv` copies a live secret to its new path and soft deletes the source, so
+# the source stays in "paths" with no data. `delete --destroy` removes a
+# secret from "paths" and "live", the way destroying every version does.
+# An optional "paths-error" file makes `paths` print its contents on stderr
+# and exit 1, and an optional "delete-error" file does the same for `delete`.
+# Every mv and delete is appended to the "calls" file.
 
 set -u
 dir="${FAKE_SAFE_DIR:?FAKE_SAFE_DIR must be set}"
 
 args=()
 for a in "$@"; do
-	[[ $a == --quiet ]] || args+=("$a")
+	[[ $a == --* ]] || args+=("$a")
 done
 cmd="${args[0]:-}"
 target="${args[1]:-}"
 
 case "$cmd" in
 paths)
+	if [[ -f $dir/paths-error ]]; then
+		cat "$dir/paths-error" >&2
+		exit 1
+	fi
 	prefix="${target%/}/"
 	grep -F -x -e "" -v "$dir/paths" 2>/dev/null | grep -F "$prefix" || true
 	;;
@@ -44,6 +55,25 @@ get)
 	key="${target#*:}"
 	[[ -f $dir/live/$secret/$key ]] || { echo "no secret exists at $target" >&2; exit 1; }
 	cat "$dir/live/$secret/$key"
+	;;
+mv)
+	dest="${args[2]:?fake safe: mv needs a destination}"
+	echo "mv $target $dest" >>"$dir/calls"
+	[[ -d $dir/live/$target ]] || { echo "!! no secret exists at $target" >&2; exit 1; }
+	mkdir -p "$dir/live/$dest"
+	cp -R "$dir/live/$target/." "$dir/live/$dest/"
+	rm -rf "${dir:?}/live/$target"
+	echo "$dest" >>"$dir/paths"
+	;;
+delete)
+	echo "delete $*" >>"$dir/calls"
+	if [[ -f $dir/delete-error ]]; then
+		cat "$dir/delete-error" >&2
+		exit 1
+	fi
+	rm -rf "${dir:?}/live/$target"
+	grep -F -x -v -e "$target" "$dir/paths" >"$dir/paths.new" || true
+	mv "$dir/paths.new" "$dir/paths"
 	;;
 x509)
 	echo "$*" >>"$dir/calls"

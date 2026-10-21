@@ -65,6 +65,23 @@ func sealVault(dir string, names ...string) {
 	Expect(os.WriteFile(filepath.Join(dir, "errors"), []byte(strings.Join(secrets, "\n")+"\n"), 0o644)).To(Succeed())
 }
 
+// failListing makes `safe paths` fail with the given message on stderr.
+func failListing(dir, msg string) {
+	Expect(os.WriteFile(filepath.Join(dir, "paths-error"), []byte(msg+"\n"), 0o644)).To(Succeed())
+}
+
+// listedPaths returns the paths that `safe paths` would list in the fake vault.
+func listedPaths(dir string) string {
+	data, err := os.ReadFile(filepath.Join(dir, "paths"))
+	Expect(err).ToNot(HaveOccurred())
+	return string(data)
+}
+
+// removePeer runs the remove-peer addon against the fake vault.
+func removePeer(dir, name string) (string, error) {
+	return runHelper(dir, "wireguard-addon.pl", "remove-peer", name)
+}
+
 var _ = Describe("the wireguard peer registry", func() {
 	It("lists the peers that are registered", func() {
 		dir := registry([]string{"laptop", "phone"}, []string{"laptop", "phone"})
@@ -129,5 +146,142 @@ var _ = Describe("the wireguard peer registry", func() {
 			_, err := runHelper(dir, "wireguard-peers.pl", "alloc", "10.20.31.0/24")
 			Expect(err).To(HaveOccurred())
 		})
+	})
+
+	Context("when the vault cannot list the registry", func() {
+		It("reads an empty registry as having no peers", func() {
+			dir := registry(nil, nil)
+			failListing(dir, "!! no secret exists at "+peersBase)
+			Expect(peers(dir, "list")).To(Equal(""))
+			Expect(peers(dir, "fragment")).To(Equal("(none)\n"))
+		})
+
+		It("fails and names the registry instead of reporting no peers", func() {
+			dir := registry([]string{"laptop"}, []string{"laptop"})
+			failListing(dir, "!! 403 permission denied")
+			out, err := runHelper(dir, "wireguard-peers.pl", "list")
+			Expect(err).To(HaveOccurred())
+			Expect(out).To(ContainSubstring(peersBase))
+			Expect(out).To(ContainSubstring("permission denied"))
+		})
+
+		It("does not render a manifest without the peers", func() {
+			dir := registry([]string{"laptop"}, []string{"laptop"})
+			failListing(dir, "!! 503 Sealed: Vault is sealed")
+			out, err := runHelper(dir, "wireguard-peers.pl", "fragment")
+			Expect(err).To(HaveOccurred())
+			Expect(out).ToNot(ContainSubstring("(none)"))
+		})
+
+		It("does not hand out an address that a peer may hold", func() {
+			dir := registry([]string{"laptop"}, []string{"laptop"})
+			failListing(dir, "!! 503 Sealed: Vault is sealed")
+			_, err := runHelper(dir, "wireguard-peers.pl", "alloc", "10.20.31.0/24")
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("does not let remove-peer treat a name as unregistered", func() {
+			dir := registry([]string{"gone"}, nil)
+			failListing(dir, "!! 503 Sealed: Vault is sealed")
+			out, err := removePeer(dir, "gone")
+			Expect(err).To(HaveOccurred())
+			Expect(out).To(ContainSubstring("could not be listed"))
+			Expect(out).ToNot(ContainSubstring("is not registered"))
+			Expect(listedPaths(dir)).To(ContainSubstring(peersBase + "gone"))
+		})
+	})
+})
+
+var _ = Describe("the remove-peer addon", func() {
+	It("archives the peer and destroys its registry entry", func() {
+		dir := registry([]string{"laptop", "phone"}, []string{"laptop", "phone"})
+		out, err := removePeer(dir, "laptop")
+		Expect(err).ToNot(HaveOccurred(), out)
+
+		Expect(calls(dir)).To(MatchRegexp(`mv ` + peersBase + `laptop secret/test/jumpbox/wireguard/revoked/laptop-\d+\n`))
+		Expect(calls(dir)).To(ContainSubstring("delete --force --destroy --all " + peersBase + "laptop\n"))
+		Expect(listedPaths(dir)).ToNot(ContainSubstring(peersBase + "laptop\n"))
+		Expect(listedPaths(dir)).To(MatchRegexp(`secret/test/jumpbox/wireguard/revoked/laptop-\d+`))
+
+		revoked, err := filepath.Glob(filepath.Join(dir, "live", "secret/test/jumpbox/wireguard/revoked", "laptop-*", "public"))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(revoked).To(HaveLen(1))
+	})
+
+	It("leaves the next deploy with only the remaining peers", func() {
+		dir := registry([]string{"laptop", "phone"}, []string{"laptop", "phone"})
+		out, err := removePeer(dir, "laptop")
+		Expect(err).ToNot(HaveOccurred(), out)
+
+		Expect(peers(dir, "list")).To(Equal("phone\n"))
+		fragment := peers(dir, "fragment")
+		Expect(fragment).To(ContainSubstring("name: phone"))
+		Expect(fragment).ToNot(ContainSubstring("laptop"))
+
+		out, err = removePeer(dir, "laptop")
+		Expect(err).To(HaveOccurred())
+		Expect(out).To(ContainSubstring("Peer 'laptop' is not registered"))
+	})
+
+	It("warns and still revokes the peer when the entry cannot be destroyed", func() {
+		dir := registry([]string{"laptop", "phone"}, []string{"laptop", "phone"})
+		Expect(os.WriteFile(filepath.Join(dir, "delete-error"), []byte("!! 403 permission denied\n"), 0o644)).To(Succeed())
+		out, err := removePeer(dir, "laptop")
+		Expect(err).ToNot(HaveOccurred(), out)
+		Expect(out).To(ContainSubstring("could not be destroyed"))
+		Expect(out).To(ContainSubstring("permission denied"))
+		Expect(out).To(ContainSubstring("safe delete --force --destroy --all " + peersBase + "laptop"))
+
+		Expect(listedPaths(dir)).To(ContainSubstring(peersBase + "laptop\n"))
+		Expect(peers(dir, "list")).To(Equal("phone\n"))
+		Expect(peers(dir, "fragment")).ToNot(ContainSubstring("laptop"))
+	})
+
+	It("destroys a soft-deleted empty entry that an older remove-peer left behind", func() {
+		dir := registry([]string{"laptop", "gone"}, []string{"laptop"})
+		out, err := removePeer(dir, "gone")
+		Expect(err).ToNot(HaveOccurred(), out)
+		Expect(out).To(ContainSubstring("had no data"))
+		Expect(calls(dir)).ToNot(ContainSubstring("mv "))
+		Expect(calls(dir)).To(ContainSubstring("delete --force --destroy --all " + peersBase + "gone\n"))
+		Expect(listedPaths(dir)).ToNot(ContainSubstring(peersBase + "gone"))
+		Expect(peers(dir, "list")).To(Equal("laptop\n"))
+	})
+
+	It("fails when a soft-deleted empty entry cannot be destroyed", func() {
+		dir := registry([]string{"gone"}, nil)
+		Expect(os.WriteFile(filepath.Join(dir, "delete-error"), []byte("!! 403 permission denied\n"), 0o644)).To(Succeed())
+		out, err := removePeer(dir, "gone")
+		Expect(err).To(HaveOccurred())
+		Expect(out).To(ContainSubstring("could not be destroyed"))
+		Expect(out).To(ContainSubstring("permission denied"))
+	})
+
+	It("archives an entry that has data but no public key instead of destroying it", func() {
+		dir := registry([]string{"broken"}, []string{"broken"})
+		Expect(os.Remove(filepath.Join(dir, "live", peersBase, "broken", "public"))).To(Succeed())
+		out, err := removePeer(dir, "broken")
+		Expect(err).ToNot(HaveOccurred(), out)
+		Expect(calls(dir)).To(MatchRegexp(`mv ` + peersBase + `broken secret/test/jumpbox/wireguard/revoked/broken-\d+\n`))
+		revoked, err := filepath.Glob(filepath.Join(dir, "live", "secret/test/jumpbox/wireguard/revoked", "broken-*", "psk"))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(revoked).To(HaveLen(1))
+	})
+
+	It("refuses a name that is not in the registry", func() {
+		dir := registry([]string{"laptop"}, []string{"laptop"})
+		out, err := removePeer(dir, "phone")
+		Expect(err).To(HaveOccurred())
+		Expect(out).To(ContainSubstring("Peer 'phone' is not registered"))
+		Expect(calls(dir)).To(Equal(""))
+	})
+
+	It("stops on a vault error instead of reading the peer as missing", func() {
+		dir := registry([]string{"laptop"}, []string{"laptop"})
+		sealVault(dir, "laptop")
+		out, err := removePeer(dir, "laptop")
+		Expect(err).To(HaveOccurred())
+		Expect(out).To(ContainSubstring("Sealed"))
+		Expect(calls(dir)).To(Equal(""))
 	})
 })
