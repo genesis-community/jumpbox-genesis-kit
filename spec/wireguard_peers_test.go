@@ -285,3 +285,48 @@ var _ = Describe("the remove-peer addon", func() {
 		Expect(calls(dir)).To(Equal(""))
 	})
 })
+
+var _ = Describe("the add-peer addon", func() {
+	readKey := func(dir, name, key string) string {
+		data, err := os.ReadFile(filepath.Join(dir, "live", peersBase, name, key))
+		Expect(err).ToNot(HaveOccurred())
+		return strings.TrimSpace(string(data))
+	}
+
+	It("keeps the private key and the preshared key off the safe command line", func() {
+		dir := registry(nil, nil)
+		out, err := runHelper(dir, "wireguard-addon.pl", "add-peer", "laptop")
+		Expect(err).ToNot(HaveOccurred(), out)
+
+		priv, psk := readKey(dir, "laptop", "private"), readKey(dir, "laptop", "psk")
+		Expect(priv).To(HaveLen(44))
+		Expect(psk).To(HaveLen(44))
+		Expect(readKey(dir, "laptop", "public")).To(HaveLen(44))
+		Expect(readKey(dir, "laptop", "address")).To(Equal("10.20.31.2"))
+
+		Expect(calls(dir)).To(MatchRegexp(`set ` + peersBase + `laptop .*private@\S+`))
+		Expect(calls(dir)).To(MatchRegexp(`psk@\S+`))
+		Expect(calls(dir)).ToNot(ContainSubstring(priv))
+		Expect(calls(dir)).ToNot(ContainSubstring(psk))
+	})
+
+	It("registers a peer that a later remove-peer revokes for the next deploy", func() {
+		dir := registry(nil, nil)
+		for _, name := range []string{"laptop", "phone"} {
+			out, err := runHelper(dir, "wireguard-addon.pl", "add-peer", name)
+			Expect(err).ToNot(HaveOccurred(), out)
+		}
+		Expect(readKey(dir, "phone", "address")).To(Equal("10.20.31.3"))
+		Expect(peers(dir, "list")).To(Equal("laptop\nphone\n"))
+
+		out, err := removePeer(dir, "laptop")
+		Expect(err).ToNot(HaveOccurred(), out)
+		Expect(peers(dir, "list")).To(Equal("phone\n"))
+		Expect(peers(dir, "fragment")).ToNot(ContainSubstring("laptop"))
+
+		out, err = runHelper(dir, "wireguard-addon.pl", "add-peer", "laptop")
+		Expect(err).ToNot(HaveOccurred(), out)
+		Expect(readKey(dir, "laptop", "address")).To(Equal("10.20.31.2"))
+		Expect(peers(dir, "list")).To(Equal("laptop\nphone\n"))
+	})
+})

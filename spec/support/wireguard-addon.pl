@@ -6,7 +6,7 @@
 # command comes from PATH, so the caller points PATH at spec/support and sets
 # FAKE_SAFE_DIR.
 #
-# usage: wireguard-addon.pl <remove-peer|list-peers> [args ...]
+# usage: wireguard-addon.pl <add-peer|remove-peer|list-peers> [args ...]
 
 use strict;
 use warnings;
@@ -37,16 +37,18 @@ BEGIN {
 	$INC{'Genesis/Hook/Addon.pm'} = __FILE__;
 	sub env { $_[0] }
 	sub has_feature { 1 }
+	sub lookup { $_[2] }
 	sub done { 0 }
 }
 
 my %addons = (
 	'remove-peer' => ['addon-remove-peer~rp.pm', 'Genesis::Hook::Addon::Jumpbox::RemovePeer'],
 	'list-peers'  => ['addon-list-peers~lp.pm',  'Genesis::Hook::Addon::Jumpbox::ListPeers'],
+	'add-peer'    => ['addon-add-peer~ap.pm',    'Genesis::Hook::Addon::Jumpbox::AddPeer'],
 );
 my $which = shift @ARGV;
 my ($file, $class) = @{$addons{$which // ''} || []}
-	or die "usage: wireguard-addon.pl <remove-peer|list-peers> [args ...]\n";
+	or die "usage: wireguard-addon.pl <add-peer|remove-peer|list-peers> [args ...]\n";
 $file = File::Spec->rel2abs(File::Basename::dirname(__FILE__) . "/../../hooks/$file");
 
 $ENV{GENESIS_SECRETS_BASE} = 'secret/test/jumpbox/';

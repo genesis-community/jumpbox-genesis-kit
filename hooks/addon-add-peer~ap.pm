@@ -63,9 +63,10 @@ sub perform {
 	my $psk = $self->_wg_genpsk;
 	my $allowed = join(',', "$address/32", @extra_cidrs);
 
-	my (undef, $rc) = run({stderr => 0},
-		'safe set "$1" "private=$2" "public=$3" "psk=$4" "address=$5" "allowed_ips=$6" "created=$7"',
-		$peer_path, $priv, $pub, $psk, $address, $allowed, time());
+	my $rc = $self->_wg_safe_set($peer_path, {
+		private => $priv, public => $pub, psk => $psk,
+		address => $address, allowed_ips => $allowed, created => time(),
+	}, 'private', 'psk');
 	bail("Failed to store peer '%s' at %s", $name, $peer_path) if $rc;
 
 	info("");

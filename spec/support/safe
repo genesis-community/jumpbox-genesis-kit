@@ -15,7 +15,9 @@
 # secret from "paths" and "live", the way destroying every version does.
 # An optional "paths-error" file makes `paths` print its contents on stderr
 # and exit 1, and an optional "delete-error" file does the same for `delete`.
-# Every mv and delete is appended to the "calls" file.
+# `set` stores `key=value` and `key@file` arguments under a live secret and
+# adds it to "paths". Every set, mv, and delete is appended to the "calls"
+# file with its arguments, so a spec can check what reached the command line.
 
 set -u
 dir="${FAKE_SAFE_DIR:?FAKE_SAFE_DIR must be set}"
@@ -55,6 +57,19 @@ get)
 	key="${target#*:}"
 	[[ -f $dir/live/$secret/$key ]] || { echo "no secret exists at $target" >&2; exit 1; }
 	cat "$dir/live/$secret/$key"
+	;;
+set)
+	echo "set ${args[*]:1}" >>"$dir/calls"
+	mkdir -p "$dir/live/$target"
+	for kv in "${args[@]:2}"; do
+		if [[ $kv == *=* ]]; then
+			printf '%s\n' "${kv#*=}" >"$dir/live/$target/${kv%%=*}"
+		elif [[ $kv == *@* ]]; then
+			cat "${kv#*@}" >"$dir/live/$target/${kv%%@*}" || exit 1
+			echo >>"$dir/live/$target/${kv%%@*}"
+		fi
+	done
+	grep -F -x -q -e "$target" "$dir/paths" 2>/dev/null || echo "$target" >>"$dir/paths"
 	;;
 mv)
 	dest="${args[2]:?fake safe: mv needs a destination}"

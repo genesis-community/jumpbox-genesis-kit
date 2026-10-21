@@ -69,7 +69,7 @@ sub perform {
 	my $port = $self->env->lookup('params.wireguard_port', '51820');
 	my $endpoint = $self->env->lookup('params.wireguard_endpoint', '');
 	$endpoint ||= $self->_get_jumpbox_ip();
-	bail("Cannot determine the WireGuard endpoint — set params.wireguard_endpoint")
+	bail("Cannot determine the WireGuard endpoint.  Set params.wireguard_endpoint.")
 		unless $endpoint;
 	$endpoint .= ":$port" unless $endpoint =~ /:\d+$/;
 
@@ -96,8 +96,14 @@ sub perform {
 
 	if ($opts{qr}) {
 		my (undef, $qr_missing) = run({stderr => 0}, 'command -v qrencode');
-		bail("qrencode not found in PATH — install it for -q output") if $qr_missing;
-		run({interactive => 1}, 'printf \'%s\' "$1" | qrencode -t ansiutf8', $config);
+		bail("qrencode was not found in PATH.  Install it to use -q.") if $qr_missing;
+		# The config holds the private key and the preshared key, so qrencode
+		# reads it from a private file rather than from a command line.  It
+		# runs interactively so that the QR code goes straight to the terminal.
+		my $config_file = $self->_wg_secret_file('client.conf', $config);
+		my (undef, $qr_rc) = run({interactive => 1}, 'qrencode -t ansiutf8 < "$1"', $config_file);
+		unlink($config_file);
+		bail("qrencode failed to render the config as a QR code (exit %d)", $qr_rc) if $qr_rc;
 	}
 
 	return $self->done();
