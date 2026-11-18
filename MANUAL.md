@@ -253,7 +253,7 @@ Because the feature owns the stemcell os, the kit refuses an environment that se
 
 Before the first deploy, we upload the resolute stemcell to the director that deploys the jumpbox. The director's runtime config must also carry bosh-dns 1.39.31 or later, because earlier bosh-dns releases do not run on resolute.
 
-The `wireguard` feature deploys the bpm release, and bpm releases older than 1.4.41 do not compile on resolute. When `resolute` and `wireguard` are both enabled, the kit pins bpm to 1.4.41, and otherwise it leaves the bpm version alone. Resolute also ships without runit, so the `chpst` command is missing, and a job whose start script drops privileges with `chpst` hangs there. We checked the releases the jumpbox kit uses and found none that depend on `chpst`, but we should check any other release we add to the deployment before we move it to resolute.
+The `wireguard` feature deploys the bpm release, and bpm releases older than 1.4.41 do not compile on resolute. When `resolute` and `wireguard` are both enabled, the kit pins bpm to 1.4.45, and otherwise it leaves the bpm version alone. Resolute also ships without runit, so the `chpst` command is missing, and a job whose start script drops privileges with `chpst` hangs there. We checked the releases the jumpbox kit uses and found none that depend on `chpst`, but we should check any other release we add to the deployment before we move it to resolute.
 
 Resolute also has no `/run/utmp`, so the `who` command prints nothing even while people are logged in. The `who` addon allows for this, as described under the addons below.
 

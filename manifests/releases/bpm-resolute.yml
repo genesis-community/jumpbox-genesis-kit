@@ -6,6 +6,6 @@
 # It merges over manifests/releases/bpm.yml by release name.
 releases:
 - name: bpm
-  version: 1.4.41
-  url: https://bosh.io/d/github.com/cloudfoundry/bpm-release?v=1.4.41
-  sha1: sha256:7b445508d63d2171d892ba33f836087e1e519b9782f44c5fa5290323616ca8e6
+  version: 1.4.45
+  url: https://bosh.io/d/github.com/cloudfoundry/bpm-release?v=1.4.45
+  sha1: sha256:ff12a6edd6277a571827a26199377adad0d0febb5ab81dc14fbdcfdbd5bc01fb

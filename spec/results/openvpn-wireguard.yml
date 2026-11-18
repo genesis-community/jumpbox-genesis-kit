@@ -115,9 +115,9 @@ releases:
   url: https://github.com/cloudfoundry-community/wireguard-boshrelease/releases/download/v0.1.0/wireguard-0.1.0.tgz
   version: 0.1.0
 - name: bpm
-  sha1: sha256:51f2eab4b59939db733beb8f7905e461a732cc29d85e54f151f576cd5bf0c414
-  url: https://bosh.io/d/github.com/cloudfoundry/bpm-release?v=1.4.22
-  version: 1.4.22
+  sha1: sha256:ff12a6edd6277a571827a26199377adad0d0febb5ab81dc14fbdcfdbd5bc01fb
+  url: https://bosh.io/d/github.com/cloudfoundry/bpm-release?v=1.4.45
+  version: 1.4.45
 stemcells:
 - alias: default
   os: ubuntu-jammy
