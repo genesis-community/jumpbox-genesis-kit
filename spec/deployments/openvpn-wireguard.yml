@@ -10,6 +10,7 @@ genesis:
   env:      openvpn-wireguard
 
 params:
+  stemcell_os: ubuntu-noble
   vpn_client_routes:
     - 10.1.0.0 255.255.0.0
   vpn_iptables_forward:

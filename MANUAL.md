@@ -192,9 +192,24 @@ params:
   which never interrupts established sessions.
 
   The wireguard BOSH release depends on the in-kernel WireGuard
-  module, so the stemcell has to ship it.  The module is present on
-  `ubuntu-resolute` 0.184, where we ran this feature, and the
-  `resolute` feature below covers that stemcell.
+  module, and its release notes require the `ubuntu-noble` stemcell.
+  The kit still defaults to `ubuntu-jammy`, so an environment that
+  enables this feature sets `stemcell_os: ubuntu-noble` under
+  `params`, and `genesis new` writes that line for us.  The module is
+  also present on `ubuntu-resolute` 0.184, where we ran this feature,
+  and the `resolute` feature below covers that stemcell.  The kit
+  refuses to render a manifest that enables `wireguard` on any other
+  stemcell, including the jammy default, so the problem shows up
+  before the deploy instead of in the job's pre-start script.
+
+  ```yaml
+  kit:
+    features:
+    - wireguard
+
+  params:
+    stemcell_os: ubuntu-noble
+  ```
 
   The `openvpn` and `wireguard` features may be enabled together;
   the kit merges their iptables FORWARD/POSTROUTING rules when both

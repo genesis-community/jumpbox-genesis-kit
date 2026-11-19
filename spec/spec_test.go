@@ -58,6 +58,16 @@ var _ = Describe("Jumpbox Kit", func() {
 			CPI:         "aws",
 		})
 		Test(Environment{
+			Name:        "wireguard-jammy-stemcell",
+			CloudConfig: "aws",
+			CPI:         "aws",
+			OutputMatchers: OutputMatchers{
+				GenesisAddSecrets: ContainSubstring("needs the ubuntu-noble stemcell"),
+				GenesisCheck:      ContainSubstring("needs the ubuntu-noble stemcell"),
+				GenesisManifest:   ContainSubstring("needs the ubuntu-noble stemcell"),
+			},
+		})
+		Test(Environment{
 			Name:        "all-features-all-params",
 			CloudConfig: "aws",
 			CPI:         "aws",

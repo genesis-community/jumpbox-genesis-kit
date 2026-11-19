@@ -9,6 +9,7 @@ genesis:
   env:      wireguard-all-params
 
 params:
+  stemcell_os: ubuntu-noble
   availability_zones: [z1]
 
   wireguard_cidr: 10.9.8.0/24

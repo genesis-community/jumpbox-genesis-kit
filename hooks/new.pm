@@ -128,6 +128,8 @@ sub perform {
   }
 
   if ($wireguard) {
+    # The wireguard release requires the ubuntu-noble stemcell.
+    $params_content .= "  stemcell_os: ubuntu-noble\n";
     $params_content .= "  wireguard_cidr: $wg_cidr\n";
     $params_content .= "  wireguard_server_address: $wg_server_address\n";
     $params_content .= "  wireguard_port: $wg_port\n" if $wg_port ne '51820';

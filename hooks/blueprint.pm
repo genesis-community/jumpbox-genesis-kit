@@ -106,6 +106,7 @@ sub perform {
     if $self->want_feature('openvpn') && $self->want_feature('wireguard');
 
   $self->_process_resolute;
+  $self->_check_wireguard_stemcell;
 
   if (@invalid) {
     my $noun = @invalid == 1 ? 'feature' : 'features';
@@ -203,6 +204,28 @@ sub _process_resolute {
       "that parameter."
     );
   }
+}
+# }}}
+
+# _check_wireguard_stemcell - Refuse wireguard on a stemcell without it {{{
+# The wireguard release supports in-kernel WireGuard only, and its notes
+# require the ubuntu-noble stemcell.  The kit default stays ubuntu-jammy
+# because not every release the kit pins is known to run on noble, so an
+# environment that enables wireguard picks noble through
+# params.stemcell_os, or resolute through the resolute feature.
+sub _check_wireguard_stemcell {
+  my ($self) = @_;
+
+  return unless $self->want_feature('wireguard');
+  return if $self->want_feature('resolute');
+
+  my $stemcell_os = $self->env->lookup('params.stemcell_os', 'ubuntu-jammy');
+  bail(
+    "The #c{wireguard} feature needs the ubuntu-noble stemcell, but the " .
+    "environment deploys the jumpbox on #R{%s}.  Set " .
+    "#c{params.stemcell_os} to ubuntu-noble, or enable the #c{resolute} " .
+    "feature.", $stemcell_os
+  ) if $stemcell_os ne 'ubuntu-noble';
 }
 # }}}
 

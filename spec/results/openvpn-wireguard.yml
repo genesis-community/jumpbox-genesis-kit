@@ -120,7 +120,7 @@ releases:
   version: 1.4.45
 stemcells:
 - alias: default
-  os: ubuntu-jammy
+  os: ubuntu-noble
   version: latest
 update:
   canaries: 1
